@@ -1,0 +1,27 @@
+Log file created at: 2023/09/01 00:18:12
+Running on machine: ljn-G7-7588
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+I0901 00:18:12.833156 17208 demo.cpp:220] map published.
+I0901 00:18:13.502799 17208 demo.cpp:220] map published.
+I0901 00:18:14.165905 17208 demo.cpp:220] map published.
+I0901 00:18:14.832239 17208 demo.cpp:220] map published.
+I0901 00:18:15.498867 17208 demo.cpp:220] map published.
+I0901 00:18:16.166173 17208 demo.cpp:220] map published.
+I0901 00:18:16.847754 17208 demo.cpp:220] map published.
+I0901 00:18:17.499220 17208 demo.cpp:220] map published.
+I0901 00:18:18.172890 17208 demo.cpp:220] map published.
+I0901 00:18:18.855253 17208 demo.cpp:220] map published.
+I0901 00:18:19.503530 17208 demo.cpp:220] map published.
+I0901 00:18:20.170868 17208 demo.cpp:220] map published.
+I0901 00:18:20.857192 17208 demo.cpp:220] map published.
+I0901 00:18:21.502671 17208 demo.cpp:220] map published.
+I0901 00:18:22.188902 17208 demo.cpp:220] map published.
+I0901 00:18:22.832397 17208 demo.cpp:220] map published.
+I0901 00:18:23.509713 17208 demo.cpp:220] map published.
+I0901 00:18:24.166133 17208 demo.cpp:220] map published.
+I0901 00:18:24.835162 17208 demo.cpp:220] map published.
+I0901 00:18:25.514906 17208 demo.cpp:220] map published.
+I0901 00:18:26.186419 17208 demo.cpp:220] map published.
+I0901 00:18:26.833654 17208 demo.cpp:220] map published.
+I0901 00:18:27.505311 17208 demo.cpp:220] map published.
+I0901 00:18:28.167472 17208 demo.cpp:220] map published.

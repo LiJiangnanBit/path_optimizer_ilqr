@@ -1,0 +1,22 @@
+Log file created at: 2023/08/30 00:40:47
+Running on machine: ljn-G7-7588
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+I0830 00:40:47.076320 31464 demo.cpp:205] map published.
+I0830 00:40:47.716897 31464 demo.cpp:205] map published.
+I0830 00:40:48.378736 31464 demo.cpp:205] map published.
+I0830 00:40:49.045507 31464 demo.cpp:205] map published.
+I0830 00:40:49.711716 31464 demo.cpp:205] map published.
+I0830 00:40:50.379475 31464 demo.cpp:205] map published.
+I0830 00:40:51.045461 31464 demo.cpp:205] map published.
+I0830 00:40:51.711771 31464 demo.cpp:205] map published.
+I0830 00:40:52.378540 31464 demo.cpp:205] map published.
+I0830 00:40:53.045342 31464 demo.cpp:205] map published.
+I0830 00:40:53.734047 31464 demo.cpp:205] map published.
+I0830 00:40:54.382340 31464 demo.cpp:205] map published.
+I0830 00:40:55.045416 31464 demo.cpp:205] map published.
+I0830 00:40:55.711846 31464 demo.cpp:205] map published.
+I0830 00:40:56.378661 31464 demo.cpp:205] map published.
+I0830 00:40:57.045221 31464 demo.cpp:205] map published.
+I0830 00:40:57.711822 31464 demo.cpp:205] map published.
+I0830 00:40:58.378998 31464 demo.cpp:205] map published.
+I0830 00:40:59.065127 31464 demo.cpp:205] map published.

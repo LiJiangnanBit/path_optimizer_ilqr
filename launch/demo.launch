@@ -1,0 +1,5 @@
+<launch>
+    <node pkg="frenet_ilqr_test" type="frenet_ilqr_test_demo" name="frenet_ilqr_test_demo" args="--log_dir=." output="screen" />
+    
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find frenet_ilqr_test)/config/rvizConfig.rviz" output="screen" />
+</launch>
