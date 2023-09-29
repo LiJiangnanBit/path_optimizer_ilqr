@@ -9,6 +9,7 @@ template <std::size_t N>
 class Variable {
 public:
     Variable() : _vector(Eigen::VectorXd::Zero(N)), _dim(N) {}
+    Variable(const Eigen::Matrix<double, N, 1>& vector) : _vector(vector), _dim(N) {}
     virtual ~Variable() {}
     const Eigen::Matrix<double, N, 1>& vector() const { return _vector; }
     std::size_t dimension() const { return _dim; }

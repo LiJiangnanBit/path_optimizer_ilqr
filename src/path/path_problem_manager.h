@@ -7,11 +7,14 @@ namespace PathPlanning {
 
 using namespace Solver;
 
-class FrenetPathDynamics : public Dynamics<N_PATH_STATE , N_PATH_CONTROL > {
+class FrenetPathDynamics : public Dynamics<N_PATH_STATE , N_PATH_CONTROL> {
 public:
-    Variable<N_PATH_STATE> move_forward(const Variable<N_PATH_STATE>& state, const Variable<N_PATH_CONTROL>& control) const override;
-    Variable<N_PATH_STATE> dx(const Variable<N_PATH_STATE>& state, const Variable<N_PATH_CONTROL>& control) const override;
-    Variable<N_PATH_CONTROL> du(const Variable<N_PATH_STATE>& state, const Variable<N_PATH_CONTROL>& control) const override;
+    FrenetPathDynamics(const ReferenceLine& reference_line) : _reference_line(reference_line) {}
+    Variable<N_PATH_STATE> move_forward(const Node<N_PATH_STATE , N_PATH_CONTROL>& node, double move_dist) const override;
+    Eigen::Matrix<double, N_PATH_STATE, N_PATH_STATE> dx(const Node<N_PATH_STATE , N_PATH_CONTROL>& node, double move_dist) const override;
+    Eigen::Matrix<double, N_PATH_STATE, N_PATH_CONTROL> du(const Node<N_PATH_STATE , N_PATH_CONTROL>& node, double move_dist) const override;
+private:
+    const ReferenceLine& _reference_line;
 };
 
 struct Config {

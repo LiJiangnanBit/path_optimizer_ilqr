@@ -34,19 +34,18 @@ struct DerivativesInfo {
     Eigen::Matrix<double, N_STATE, N_STATE> lxx;
     Eigen::Matrix<double, N_CONTROL, N_CONTROL> luu;
     Eigen::Matrix<double, N_CONTROL, N_STATE> lux;
-    Eigen::Matrix<double, N_STATE, 1> fx;
-    Eigen::Matrix<double, N_CONTROL, 1> fu;
+    Eigen::Matrix<double, N_STATE, N_STATE> fx;
+    Eigen::Matrix<double, N_STATE, N_CONTROL> fu;
 };
 
 template <std::size_t N_STATE, std::size_t N_CONTROL>
 class ILQRSolver {
 
 public:
-    ILQRSolver(const ProblemManager<N_STATE, N_CONTROL>& problem_manager, const Trajectory<N_STATE, N_CONTROL>& init_trajectory)
+    ILQRSolver(const ProblemManager<N_STATE, N_CONTROL>& problem_manager)
         : _problem_manager(problem_manager),
-        _init_trajectory(init_trajectory),
-        _current_trajectory(init_trajectory),
-        _current_cost(problem_manager.calculate_total_cost(init_trajectory)),
+        _current_trajectory(problem_manager.init_trajectory()),
+        _current_cost(problem_manager.calculate_total_cost(problem_manager.init_trajectory())),
         _num_steps(problem_manager.num_steps()),
         _k(problem_manager.num_steps(), 0.0),
         _K(problem_manager.num_steps(), 0.0),
@@ -54,8 +53,8 @@ public:
         _vxx(Eigen::MatrixXd::Zero(N_STATE, N_STATE)),
         _derivatives(problem_manager.num_steps()),
         _approx_cost_decay_info(std::pair<double, double>{0.0, 0.0}) {
-            CHECK_EQ(init_trajectory.size(), _num_steps);
-            CHECK_GT(init_trajectory.size(), 0);
+            CHECK_EQ(_current_trajectory.size(), _num_steps);
+            CHECK_GT(_current_trajectory.size(), 0);
         };
     ILQRSolveStatus solve();
     Trajectory<N_STATE, N_CONTROL> final_trajectory() const { return _current_trajectory; }
@@ -67,7 +66,6 @@ private:
     inline void increase_mu();
     inline void decrease_mu();
     const ProblemManager<N_STATE, N_CONTROL>& _problem_manager;
-    Trajectory<N_STATE, N_CONTROL> _init_trajectory;
     Trajectory<N_STATE, N_CONTROL> _current_trajectory;
     double _current_cost = 0.0;
     std::size_t _num_steps = 0;
@@ -142,8 +140,11 @@ void ILQRSolver<N_STATE, N_CONTROL>::calculate_derivatives() {
         derivative.lxx = _problem_manager.dxx(_current_trajectory, i);
         derivative.luu = _problem_manager.duu(_current_trajectory, i);
         derivative.lux = _problem_manager.dux(_current_trajectory, i);
-        derivative.fx = _problem_manager.dynamics().dx(state, control);
-        derivative.fu = _problem_manager.dynamics().du(state, control);
+        if (i < _num_steps - 1) {
+            const double move_dist = _problem_manager.knots().at(i + 1) - _problem_manager.knots().at(i);
+            derivative.fx = _problem_manager.dynamics().dx(_current_trajectory.at(i), move_dist);
+            derivative.fu = _problem_manager.dynamics().du(_current_trajectory.at(i), move_dist);
+        }
     }
 }
 
@@ -192,9 +193,10 @@ void ILQRSolver<N_STATE, N_CONTROL>::forward_pass() {
         // Forward simulate.
         Trajectory<N_STATE, N_CONTROL> new_trajectory = _current_trajectory;
         for (std::size_t i = 0; i < _num_steps - 1; ++i) {
-            const auto new_control =_current_trajectory.at(i).control()
-                + alpha * _k.at(i) + _K.at(i) * (new_trajectory.at(i).state() - _current_trajectory.at(i).state());
-            *(new_trajectory.at(i + 1).mutable_state()) = _problem_manager.dynamics().move_forward(new_trajectory.at(i).state(), new_control);
+            *(new_trajectory.at(i).mutable_control()) =
+                _current_trajectory.at(i).control() + alpha * _k.at(i) + _K.at(i) * (new_trajectory.at(i).state() - _current_trajectory.at(i).state());
+            *(new_trajectory.at(i + 1).mutable_state()) =
+                _problem_manager.dynamics().move_forward(new_trajectory.at(i), _problem_manager.knots().at(i + 1) - _problem_manager.knots().at(i));
         }
         // Calculate actual cost decay. 
         new_cost = _problem_manager.calculate_total_cost(new_trajectory);

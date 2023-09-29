@@ -1,3 +1,4 @@
+#include <cmath>
 #include "path_problem_manager.h"
 #include "path_costs.h"
 
@@ -9,7 +10,7 @@ void PathProblemManager::formulate_path_problem(const FreeSpace& free_space, con
     _config.planning_length = reference_line.length();
     sample_knots();
     // Set dynamics.
-    _p_dynamics = std::make_shared<FrenetPathDynamics>();
+    _p_dynamics = std::make_shared<FrenetPathDynamics>(reference_line);
     // Init trajectory.
     calculate_init_trajectory(reference_line);
     // Add costs and constraints.
@@ -37,10 +38,10 @@ void PathProblemManager::calculate_init_trajectory(const ReferenceLine& referenc
 
 void PathProblemManager::add_costs() {
     CHECK(_costs.size() == num_steps());
-    std::shared_ptr<constPathCost> ref_l_cost_ptr(new RefLCost());
+    std::shared_ptr<PathCost> ref_l_cost_ptr(new RefLCost());
     std::shared_ptr<PathCost> kappa_cost_ptr(new KappaCost());
-    std::shared_ptr<KappaRateCost0> kappa_rate_cost_0_ptr(new KappaRateCost0());
-    std::shared_ptr<KappaRateCost1> kappa_rate_cost_1_ptr(new KappaRateCost1());
+    std::shared_ptr<PathCost> kappa_rate_cost_0_ptr(new KappaRateCost0());
+    std::shared_ptr<PathCost> kappa_rate_cost_1_ptr(new KappaRateCost1());
     for (std::size_t step = 0; step < num_steps(); ++step) {
         // Ref l cost for each step:
         _costs.at(step)[ref_l_cost_ptr->name()] = ref_l_cost_ptr;
@@ -59,19 +60,37 @@ void PathProblemManager::add_costs() {
     }
 }
 
-Variable<N_PATH_STATE> FrenetPathDynamics::move_forward(const Variable<N_PATH_STATE>& state, const Variable<N_PATH_CONTROL>& control) const {
-    Variable<N_PATH_STATE> ret;
-    
+Variable<N_PATH_STATE> FrenetPathDynamics::move_forward(const Node<N_PATH_STATE , N_PATH_CONTROL>& node, double move_dist) const {
+    const double kappa_ref = _reference_line.get_reference_point(node.sample()).kappa;
+    const double l = node.state().vector()(L_INDEX);
+    const double hd = node.state().vector()(HD_INDEX);
+    const double kappa = node.control().vector()(KAPPA_INDEX);
+    const double dl = (1 - kappa_ref * l) * tan(hd);
+    const double dhd = (1 - kappa_ref * l) * kappa / cos(hd) - kappa_ref;
+    Eigen::Matrix<double, N_PATH_STATE, 1> ret_vector;
+    ret_vector << l + dl * move_dist, hd + dhd * move_dist;
+    return Variable<N_PATH_STATE>(ret_vector);
+}
+Eigen::Matrix<double, N_PATH_STATE, N_PATH_STATE> FrenetPathDynamics::dx(
+    const Node<N_PATH_STATE , N_PATH_CONTROL>& node, double move_dist) const {
+    const double kappa_ref = _reference_line.get_reference_point(node.sample()).kappa;
+    const double l = node.state().vector()(L_INDEX);
+    const double hd = node.state().vector()(HD_INDEX);
+    const double kappa = node.control().vector()(KAPPA_INDEX);
+    Eigen::Matrix<double, N_PATH_STATE, N_PATH_STATE> ret;
+    ret << 1 - move_dist * tan(hd) * kappa_ref,
+        move_dist * (1 - kappa_ref * l) / cos(hd) / cos(hd),
+        -move_dist * kappa * kappa_ref / cos(hd),
+        1 + move_dist * (1 - kappa_ref * l) * kappa * tan(hd) / cos(hd);
     return ret;
 }
-Variable<N_PATH_STATE> FrenetPathDynamics::dx(const Variable<N_PATH_STATE>& state, const Variable<N_PATH_CONTROL>& control) const {
-    Variable<N_PATH_STATE> ret;
-    
-    return ret;
-}
-Variable<N_PATH_CONTROL> FrenetPathDynamics::du(const Variable<N_PATH_STATE>& state, const Variable<N_PATH_CONTROL>& control) const {
-    Variable<N_PATH_CONTROL> ret;
-    
+Eigen::Matrix<double, N_PATH_STATE, N_PATH_CONTROL> FrenetPathDynamics::du(
+    const Node<N_PATH_STATE , N_PATH_CONTROL>& node, double move_dist) const {
+    const double kappa_ref = _reference_line.get_reference_point(node.sample()).kappa;
+    const double l = node.state().vector()(L_INDEX);
+    const double hd = node.state().vector()(HD_INDEX);
+    Eigen::Matrix<double, N_PATH_STATE, N_PATH_CONTROL> ret;
+    ret << 0, move_dist * (1 - kappa_ref * l) / cos(hd);
     return ret;
 }
 

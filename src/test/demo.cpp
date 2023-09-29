@@ -28,6 +28,7 @@
 #include "reference_line_processor.h"
 #include "path/data_structure.h"
 #include "path/path_problem_manager.h"
+#include "solver/solver.h"
 
 
 // TODO: this file is a mess.
@@ -207,6 +208,11 @@ int main(int argc, char **argv) {
                 boundary_points_marker.points.push_back(p);
             }
             markers.append(boundary_points_marker);
+
+            // solve
+            PathPlanning::PathProblemManager path_problem_manager;
+            path_problem_manager.formulate_path_problem(*free_space_ptr, *ref_line_ptr);
+            Solver::ILQRSolver<PathPlanning::N_PATH_STATE, PathPlanning::N_PATH_CONTROL> ilqr_solver(path_problem_manager);
         }
 
         // Publish the grid_map.

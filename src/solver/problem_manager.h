@@ -49,9 +49,9 @@ class Dynamics {
 public:
     Dynamics() = default;
     virtual ~Dynamics() = default;
-    virtual Variable<N_STATE> move_forward(const Variable<N_STATE>& state, const Variable<N_CONTROL>& control) const = 0;
-    virtual Variable<N_STATE> dx(const Variable<N_STATE>& state, const Variable<N_CONTROL>& control) const = 0;
-    virtual Variable<N_CONTROL> du(const Variable<N_STATE>& state, const Variable<N_CONTROL>& control) const = 0;
+    virtual Variable<N_STATE> move_forward(const Node<N_STATE, N_CONTROL>& node, double move_dist) const = 0;
+    virtual Eigen::Matrix<double, N_STATE, N_STATE> dx(const Node<N_STATE, N_CONTROL>& node, double move_dist) const = 0;
+    virtual Eigen::Matrix<double, N_STATE, N_CONTROL> du(const Node<N_STATE, N_CONTROL>& node, double move_dist) const = 0;
 };
 
 template <std::size_t N_STATE, std::size_t N_CONTROL>
@@ -65,6 +65,7 @@ public:
     const std::vector<CostMap<N_STATE, N_CONTROL>>& costs() const { return _costs; }
     std::size_t num_steps() const { return _knots.size(); }
     const Dynamics<N_STATE, N_CONTROL>& dynamics() const { return *_p_dynamics; }
+    const Trajectory<N_STATE, N_CONTROL>& init_trajectory() const { return _init_trajectory; }
 
     Eigen::Matrix<double, N_STATE, 1> dx(
         const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step) const;
