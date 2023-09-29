@@ -61,7 +61,7 @@ void PathProblemManager::add_costs() {
 
 Variable<N_PATH_STATE> FrenetPathDynamics::move_forward(const Variable<N_PATH_STATE>& state, const Variable<N_PATH_CONTROL>& control) const {
     Variable<N_PATH_STATE> ret;
-llllllllllllllllllllllllllllll
+    
     return ret;
 }
 Variable<N_PATH_STATE> FrenetPathDynamics::dx(const Variable<N_PATH_STATE>& state, const Variable<N_PATH_CONTROL>& control) const {
