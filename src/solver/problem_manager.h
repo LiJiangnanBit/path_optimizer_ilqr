@@ -99,6 +99,7 @@ Eigen::Matrix<double, N_STATE, 1> ProblemManager<N_STATE, N_CONTROL>::dx(
     CHECK(step < _costs.size());
     Eigen::Matrix<double, N_STATE, 1> ret = Eigen::MatrixXd::Zero(N_STATE, 1);
     for (const auto& cost_pair : _costs.at(step)) {
+        // LOG_IF(INFO, step == 50) << "[Test] step 50 cost name " << cost_pair.second->name() << ", value " << cost_pair.second->dx(trajectory, step);
         ret += cost_pair.second->dx(trajectory, step);
     }
     return ret;
@@ -152,9 +153,11 @@ double ProblemManager<N_STATE, N_CONTROL>::calculate_total_cost(
     double total_cost = 0.0;
     for (std::size_t i = 0; i < size; ++i) {
         for (const auto& cost_pair : _costs.at(i)) {
+            // LOG(INFO) << "[Test] init cost step i " << i << ", name " << cost_pair.second->name() << ", value " << cost_pair.second->cost_value(trajectory, i);
             total_cost += cost_pair.second->cost_value(trajectory, i);
         }
     }
+    // LOG(INFO) << "[Test] total value " << total_cost;
     return total_cost;
 }
 

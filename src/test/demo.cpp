@@ -213,6 +213,52 @@ int main(int argc, char **argv) {
             PathPlanning::PathProblemManager path_problem_manager;
             path_problem_manager.formulate_path_problem(*free_space_ptr, *ref_line_ptr);
             Solver::ILQRSolver<PathPlanning::N_PATH_STATE, PathPlanning::N_PATH_CONTROL> ilqr_solver(path_problem_manager);
+            const auto solve_status = ilqr_solver.solve();
+            // LOG(INFO) << "Solve status " << solve_status;
+
+            visualization_msgs::Marker init_path_marker =
+                markers.newLineStrip(0.5, "init path", id++, ros_viz_tools::YELLOW, marker_frame_id);
+            const auto& init_path_raw = path_problem_manager.init_trajectory();
+            for (size_t i = 0; i != init_path_raw.size(); ++i) {
+                PathPlanning::SLPosition sl;
+                sl.s = init_path_raw[i].sample();
+                sl.l = init_path_raw[i].state()(PathPlanning::L_INDEX);
+                const auto xy = ref_line_ptr->get_xy_by_sl(sl);
+                geometry_msgs::Point p;
+                p.x = xy.x;
+                p.y = xy.y;
+                p.z = 1.0;
+                init_path_marker.points.push_back(p);;
+            }
+            markers.append(init_path_marker);
+            ros_viz_tools::ColorRGBA path_color;
+            path_color.r = 0.063;
+            path_color.g = 0.305;
+            path_color.b = 0.545;
+            if (solve_status != ILQRSolveStatus::SOLVED) {
+                path_color.r = 1.0;
+                path_color.g = 0.0;
+                path_color.b = 0.0;
+            }
+            visualization_msgs::Marker result_marker =
+                markers.newLineStrip(0.5, "optimized path", id++, path_color, marker_frame_id);
+            const auto& opt_path_raw = ilqr_solver.final_trajectory();
+            for (size_t i = 0; i != opt_path_raw.size(); ++i) {
+                PathPlanning::SLPosition sl;
+                sl.s = opt_path_raw[i].sample();
+                sl.l = opt_path_raw[i].state()(PathPlanning::L_INDEX);
+                const auto xy = ref_line_ptr->get_xy_by_sl(sl);
+                geometry_msgs::Point p;
+                p.x = xy.x;
+                p.y = xy.y;
+                p.z = 1.0;
+                result_marker.points.push_back(p);
+                const auto k = opt_path_raw[i].control()(PathPlanning::KAPPA_INDEX);
+                path_color.a = std::min(fabs(k) / 0.15, 1.0);
+                path_color.a = std::max((float)0.1, path_color.a);
+                result_marker.colors.emplace_back(path_color);
+            }
+            markers.append(result_marker);
         }
 
         // Publish the grid_map.

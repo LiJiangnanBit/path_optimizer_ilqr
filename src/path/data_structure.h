@@ -15,21 +15,21 @@ constexpr std::size_t L_INDEX = 0;
 constexpr std::size_t HD_INDEX = 1; // HD for heading diff.
 constexpr std::size_t KAPPA_INDEX = 0;
 
-class FrenetPathState : public Variable<3> {
-public:
-    double l() const { return _vector(0); }
-    double theta_diff() const { return _vector(1); }
-    double kappa() const { return _vector(2); }
-    void set_l(double l) { _vector(0) = l; }
-    void set_theta_diff(double theta_diff) { _vector(1) = theta_diff; }
-    void set_kappa(double kappa) { _vector(2) = kappa; }
-};
+// class FrenetPathState : public Variable<N_PATH_STATE> {
+// public:
+//     double l() const { return _vector(0); }
+//     double theta_diff() const { return _vector(1); }
+//     double kappa() const { return _vector(2); }
+//     void set_l(double l) { _vector(0) = l; }
+//     void set_theta_diff(double theta_diff) { _vector(1) = theta_diff; }
+//     void set_kappa(double kappa) { _vector(2) = kappa; }
+// };
 
-class PathControl : public Variable<1> {
-public: 
-    double dkappa() const { return _vector(0); }
-    void set_dkappa(double dkappa) { _vector(0) = dkappa; }
-};
+// class PathControl : public Variable<N_PATH_CONTROL> {
+// public: 
+//     double dkappa() const { return _vector(0); }
+//     void set_dkappa(double dkappa) { _vector(0) = dkappa; }
+// };
 
 // class PathNode : public Node<3, 1> {
 // public:

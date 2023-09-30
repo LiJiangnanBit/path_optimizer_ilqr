@@ -6,19 +6,22 @@
 namespace Solver {
 
 template <std::size_t N>
-class Variable {
-public:
-    Variable() : _vector(Eigen::VectorXd::Zero(N)), _dim(N) {}
-    Variable(const Eigen::Matrix<double, N, 1>& vector) : _vector(vector), _dim(N) {}
-    virtual ~Variable() {}
-    const Eigen::Matrix<double, N, 1>& vector() const { return _vector; }
-    std::size_t dimension() const { return _dim; }
-    Eigen::Matrix<double, N, 1>* mutable_vector() { return &_vector; }
+using Variable = Eigen::Matrix<double, N, 1>;
 
-protected:
-    Eigen::Matrix<double, N, 1> _vector;
-    const std::size_t _dim;
-};
+// template <std::size_t N>
+// class Variable {
+// public:
+//     Variable() : _vector(Eigen::VectorXd::Zero(N)), _dim(N) {}
+//     Variable(const Eigen::Matrix<double, N, 1>& vector) : _vector(vector), _dim(N) {}
+//     virtual ~Variable() {}
+//     const Eigen::Matrix<double, N, 1>& vector() const { return _vector; }
+//     std::size_t dimension() const { return _dim; }
+//     Eigen::Matrix<double, N, 1>* mutable_vector() { return &_vector; }
+
+// protected:
+//     Eigen::Matrix<double, N, 1> _vector;
+//     const std::size_t _dim;
+// };
 
 template <std::size_t N_STATE, std::size_t N_CONTROL>
 class Node {
