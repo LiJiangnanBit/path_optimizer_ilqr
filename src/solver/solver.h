@@ -97,8 +97,7 @@ ILQRSolveStatus ILQRSolver<N_STATE, N_CONTROL>::solve() {
             break;
         } else if (_current_solve_status != LQRSolveStatus::RUNNING) {
             increase_mu();
-        } else if (_current_solve_status == LQRSolveStatus::BACKWARD_PASS_FAIL ||
-                   _current_solve_status == LQRSolveStatus::FORWARD_PASS_FAIL) {
+        } else {
             decrease_mu();
         }
     }
@@ -164,7 +163,7 @@ void ILQRSolver<N_STATE, N_CONTROL>::backward_pass() {
         // LOG(INFO) << "[Test] Iter " << _iter << ", i " << i << ", qx " << qx;
         const auto qu = derivative.lu + derivative.fu.transpose() * _vx;
         const auto qxx = derivative.lxx + derivative.fx.transpose() * _vxx * derivative.fx;
-        const auto quu =derivative.luu + derivative.fu.transpose() * _vxx * derivative.fu
+        const auto quu = derivative.luu + derivative.fu.transpose() * _vxx * derivative.fu
             + _mu * Eigen::Matrix<double, N_CONTROL, N_CONTROL>::Identity();
         const auto qux = derivative.lux + derivative.fu.transpose() * _vxx * derivative.fx;
 

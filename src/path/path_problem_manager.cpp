@@ -70,6 +70,7 @@ Variable<N_PATH_STATE> FrenetPathDynamics::move_forward(const Node<N_PATH_STATE 
     ret << l + dl * move_dist, hd + dhd * move_dist, kappa + dk * move_dist;
     return ret;
 }
+
 Eigen::Matrix<double, N_PATH_STATE, N_PATH_STATE> FrenetPathDynamics::dx(
     const Node<N_PATH_STATE , N_PATH_CONTROL>& node, double move_dist) const {
     const double kappa_ref = _reference_line.get_reference_point(node.sample()).kappa;
@@ -84,6 +85,7 @@ Eigen::Matrix<double, N_PATH_STATE, N_PATH_STATE> FrenetPathDynamics::dx(
         -move_dist * kappa_rate * kappa_ref / cos(hd), move_dist * (1 - kappa_ref * l) * kappa_rate * tan(hd) / cos(hd), 1.0;
     return ret;
 }
+
 Eigen::Matrix<double, N_PATH_STATE, N_PATH_CONTROL> FrenetPathDynamics::du(
     const Node<N_PATH_STATE , N_PATH_CONTROL>& node, double move_dist) const {
     const double kappa_ref = _reference_line.get_reference_point(node.sample()).kappa;
