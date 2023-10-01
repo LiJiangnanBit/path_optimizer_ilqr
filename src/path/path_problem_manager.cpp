@@ -52,12 +52,13 @@ void PathProblemManager::add_costs() {
         }
         // Kappa rate cost.
         // part 1:
-        // if (step < num_steps() - 2) {
-        //     _costs.at(step)[kappa_rate_cost_0_ptr->name()] = kappa_rate_cost_0_ptr;
-        // }
-        // if (step < num_steps() - 1 && step > 0) {
-        //     _costs.at(step)[kappa_rate_cost_1_ptr->name()] = kappa_rate_cost_1_ptr;
-        // }
+        if (step < num_steps() - 2) {
+            _costs.at(step)[kappa_rate_cost_0_ptr->name()] = kappa_rate_cost_0_ptr;
+        }
+        // part 2:
+        if (step < num_steps() - 1 && step > 0) {
+            _costs.at(step)[kappa_rate_cost_1_ptr->name()] = kappa_rate_cost_1_ptr;
+        }
     }
 }
 

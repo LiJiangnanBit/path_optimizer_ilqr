@@ -123,7 +123,7 @@ bool ReferenceLineProcessor::search(std::shared_ptr<ReferenceLine> reference_lin
     double vehicle_s = layers_s_list_.front();
 
     if (fabs(init_sl.l) > 5.0) {
-        LOG(ERROR) << "Vehicle far from ref, quit graph search.";
+        LOG(ERROR) << "Vehicle far from ref, quit graph search. Init l " << init_sl.l;
         return false;
     }
     int start_lateral_index =

@@ -5,6 +5,8 @@
 
 namespace Solver {
 
+constexpr double EPS = 1e-5;
+
 enum class ILQRSolveStatus {
     SOLVED,
     REACHED_MAX_ITERATION,
@@ -21,7 +23,7 @@ enum class LQRSolveStatus {
 struct ILQRConfig {
     double min_alpha = 0.01;
     double accept_step_threshold = 0.5;
-    std::size_t max_iter = 30;
+    std::size_t max_iter = 150;
     double delta_0 = 2.0;
     double min_mu = 1e-6;
     double convergence_threshold = 1e-2;
@@ -208,7 +210,7 @@ void ILQRSolver<N_STATE, N_CONTROL>::forward_pass() {
         // Calculate actual cost decay. 
         new_cost = _problem_manager.calculate_total_cost(new_trajectory);
         const double actual_cost_decay = _current_cost - new_cost;
-        if (std::fabs(actual_cost_decay) < _ilqr_config.convergence_threshold) {
+        if (std::fabs(alpha - 1.0) < EPS && std::fabs(actual_cost_decay) < _ilqr_config.convergence_threshold) {
             LOG(INFO) << "[Forward pass] Iter " << _iter << ", optimization has converged.";
             _current_solve_status = LQRSolveStatus::CONVERGED;
             return;

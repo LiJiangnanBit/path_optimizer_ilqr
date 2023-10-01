@@ -7,8 +7,8 @@ namespace PathPlanning {
 
 using namespace Solver;
 using PathCost = Cost<N_PATH_STATE, N_PATH_CONTROL>;
-constexpr double weight_ref_l = 0.00001;
-constexpr double weight_kappa = 1.0;
+constexpr double weight_ref_l = 0.001;
+constexpr double weight_kappa = 10.0;
 constexpr double weight_kappa_rate = 10.0;
 
 class RefLCost : public PathCost {
@@ -79,11 +79,12 @@ public:
         update_info(trajectory, step);
         Eigen::Matrix<double, N_PATH_CONTROL, N_PATH_CONTROL> ret;
         ret << weight_kappa_rate / _ds / _ds;
+        return ret;
     }
 private:
     void update_info(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step) {
         CHECK(step < trajectory.size() - 1);
-        _ds = (trajectory.at(step + 1).sample() - trajectory.at(step).sample()) / cos(trajectory.at(step).state()(HD_INDEX));
+        _ds = (trajectory.at(step + 1).sample() - trajectory.at(step).sample());// / cos(trajectory.at(step).state()(HD_INDEX));
         _kappa_0 = trajectory.at(step).control()(KAPPA_INDEX);
         _kappa_1 = trajectory.at(step + 1).control()(KAPPA_INDEX);
     }
@@ -111,13 +112,14 @@ public:
         update_info(trajectory, step);
         Eigen::Matrix<double, N_PATH_CONTROL, N_PATH_CONTROL> ret;
         ret << weight_kappa_rate / _ds / _ds;
+        return ret;
     }
 private:
     void update_info(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step) {
-        CHECK(step < trajectory.size() - 1);
-        _ds = (trajectory.at(step + 1).sample() - trajectory.at(step).sample()) / cos(trajectory.at(step).state()(HD_INDEX));
-        _kappa_0 = trajectory.at(step).control()(KAPPA_INDEX);
-        _kappa_1 = trajectory.at(step + 1).control()(KAPPA_INDEX);
+        CHECK(step > 0 && step < trajectory.size());
+        _ds = (trajectory.at(step).sample() - trajectory.at(step - 1).sample());// / cos(trajectory.at(step).state()(HD_INDEX));
+        _kappa_0 = trajectory.at(step - 1).control()(KAPPA_INDEX);
+        _kappa_1 = trajectory.at(step).control()(KAPPA_INDEX);
     }
     double _ds = 0.0;
     double _kappa_0 = 0.0;

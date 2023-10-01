@@ -217,7 +217,7 @@ int main(int argc, char **argv) {
             // LOG(INFO) << "Solve status " << solve_status;
 
             visualization_msgs::Marker init_path_marker =
-                markers.newLineStrip(0.5, "init path", id++, ros_viz_tools::YELLOW, marker_frame_id);
+                markers.newLineStrip(0.3, "init path", id++, ros_viz_tools::YELLOW, marker_frame_id);
             const auto& init_path_raw = path_problem_manager.init_trajectory();
             for (size_t i = 0; i != init_path_raw.size(); ++i) {
                 PathPlanning::SLPosition sl;
@@ -241,7 +241,7 @@ int main(int argc, char **argv) {
                 path_color.b = 0.0;
             }
             visualization_msgs::Marker result_marker =
-                markers.newLineStrip(0.5, "optimized path", id++, path_color, marker_frame_id);
+                markers.newLineStrip(0.3, "optimized path", id++, path_color, marker_frame_id);
             const auto& opt_path_raw = ilqr_solver.final_trajectory();
             for (size_t i = 0; i != opt_path_raw.size(); ++i) {
                 PathPlanning::SLPosition sl;
