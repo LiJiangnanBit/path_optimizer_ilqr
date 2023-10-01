@@ -9,11 +9,12 @@ namespace PathPlanning {
 using Solver::Variable;
 using Solver::Node;
 
-constexpr std::size_t N_PATH_STATE  = 2;
+constexpr std::size_t N_PATH_STATE  = 3;
 constexpr std::size_t N_PATH_CONTROL = 1;
 constexpr std::size_t L_INDEX = 0;
 constexpr std::size_t HD_INDEX = 1; // HD for heading diff.
-constexpr std::size_t KAPPA_INDEX = 0;
+constexpr std::size_t K_INDEX = 2;
+constexpr std::size_t KR_INDEX = 0; // Control, kappa rate.
 
 // class FrenetPathState : public Variable<N_PATH_STATE> {
 // public:

@@ -253,7 +253,7 @@ int main(int argc, char **argv) {
                 p.y = xy.y;
                 p.z = 1.0;
                 result_marker.points.push_back(p);
-                const auto k = opt_path_raw[i].control()(PathPlanning::KAPPA_INDEX);
+                const auto k = opt_path_raw[i].state()(PathPlanning::K_INDEX);
                 path_color.a = std::min(fabs(k) / 0.15, 1.0);
                 path_color.a = std::max((float)0.1, path_color.a);
                 result_marker.colors.emplace_back(path_color);
