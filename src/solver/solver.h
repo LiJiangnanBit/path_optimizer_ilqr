@@ -154,10 +154,10 @@ void ILQRSolver<N_STATE, N_CONTROL>::calculate_derivatives() {
 
 template <std::size_t N_STATE, std::size_t N_CONTROL>
 void ILQRSolver<N_STATE, N_CONTROL>::backward_pass() {
-    _vx = Eigen::MatrixXd::Zero(N_STATE, 1);
-    _vxx = Eigen::MatrixXd::Zero(N_STATE, N_STATE);
+    _vx = _derivatives.back().lx;
+    _vxx = _derivatives.back().lxx;
     _approx_cost_decay_info = {0.0, 0.0};
-    for (int i = _num_steps - 1; i >= 0; --i) {
+    for (int i = _num_steps - 2; i >= 0; --i) {
         auto& derivative = _derivatives.at(i);
         const auto qx = derivative.lx + derivative.fx.transpose() * _vx;
         // LOG(INFO) << "[Test] Iter " << _iter << ", i " << i << ", qx " << qx;
