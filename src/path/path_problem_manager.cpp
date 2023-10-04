@@ -1,6 +1,7 @@
 #include <cmath>
 #include "path_problem_manager.h"
 #include "path_costs.h"
+#include "tool.h"
 
 namespace PathPlanning {
 using namespace Solver;
@@ -67,7 +68,7 @@ Variable<N_PATH_STATE> FrenetPathDynamics::move_forward(const Node<N_PATH_STATE 
     const double dk = (1 - kappa_ref * l) / cos(hd) * kappa_rate;
 
     Variable<N_PATH_STATE> ret;
-    ret << l + dl * move_dist, hd + dhd * move_dist, kappa + dk * move_dist;
+    ret << l + dl * move_dist, constrainAngle(hd + dhd * move_dist), kappa + dk * move_dist;
     return ret;
 }
 

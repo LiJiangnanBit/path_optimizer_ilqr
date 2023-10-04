@@ -10,7 +10,7 @@ constexpr double EPS = 1e-5;
 enum class ILQRSolveStatus {
     SOLVED,
     REACHED_MAX_ITERATION,
-    FAILED,
+    REACHED_MAX_MU,
 };
 
 enum class LQRSolveStatus {
@@ -18,6 +18,7 @@ enum class LQRSolveStatus {
     CONVERGED,
     BACKWARD_PASS_FAIL,
     FORWARD_PASS_FAIL,
+    FORWARD_PASS_SMALL_STEP,
 };
 
 struct ILQRConfig {
@@ -26,6 +27,7 @@ struct ILQRConfig {
     std::size_t max_iter = 150;
     double delta_0 = 2.0;
     double min_mu = 1e-6;
+    double max_mu = 1000.0;
     double convergence_threshold = 1e-2;
 };
 
@@ -93,21 +95,20 @@ ILQRSolveStatus ILQRSolver<N_STATE, N_CONTROL>::solve() {
         calculate_derivatives();
         backward_pass();
         forward_pass();
-        if (_current_solve_status == LQRSolveStatus::CONVERGED) {
-            break;
-        } else if (_current_solve_status != LQRSolveStatus::RUNNING) {
+        // Process mu.
+        if (_current_solve_status != LQRSolveStatus::RUNNING) {
             increase_mu();
         } else {
             decrease_mu();
         }
+        // Process optimization result.
+        if (_mu > _ilqr_config.max_mu) {
+            return ILQRSolveStatus::REACHED_MAX_MU;
+        } else if (_current_solve_status == LQRSolveStatus::CONVERGED) {
+            return ILQRSolveStatus::SOLVED;
+        }
     }
-    if (_current_solve_status == LQRSolveStatus::RUNNING) {
-        return ILQRSolveStatus::REACHED_MAX_ITERATION;
-    } else if (_current_solve_status == LQRSolveStatus::CONVERGED) {
-        return ILQRSolveStatus::SOLVED;
-    } else {
-        return ILQRSolveStatus::FAILED;
-    }
+    return ILQRSolveStatus::REACHED_MAX_ITERATION;
 }
 
 template <std::size_t N_STATE, std::size_t N_CONTROL>
@@ -130,10 +131,11 @@ void ILQRSolver<N_STATE, N_CONTROL>::decrease_mu() {
 template <std::size_t N_STATE, std::size_t N_CONTROL>
 void ILQRSolver<N_STATE, N_CONTROL>::calculate_derivatives() {
     // Derivatives need to be calculated only if the trajectory is updated.
-    if (_current_solve_status != LQRSolveStatus::RUNNING) {
+    if (_current_solve_status != LQRSolveStatus::RUNNING && _current_solve_status != LQRSolveStatus::FORWARD_PASS_SMALL_STEP) {
         _current_solve_status = LQRSolveStatus::RUNNING;
         return;
     }
+    _current_solve_status = LQRSolveStatus::RUNNING;
     for (std::size_t i = 0; i < _num_steps; ++i) {
         const auto& state = _current_trajectory.at(i).state();
         const auto& control = _current_trajectory.at(i).control();
@@ -209,6 +211,12 @@ void ILQRSolver<N_STATE, N_CONTROL>::forward_pass() {
         // Calculate actual cost decay. 
         new_cost = _problem_manager.calculate_total_cost(new_trajectory);
         const double actual_cost_decay = _current_cost - new_cost;
+        if (std::fabs(alpha - 1.0) < EPS && actual_cost_decay < -100.0) {
+            for (std::size_t i = 0; i < new_trajectory.size(); ++i) {
+                LOG(INFO) << i << " old state " << _current_trajectory.at(i).state() << ", control " << _current_trajectory.at(i).control();
+                LOG(INFO) << i << " new state " << new_trajectory.at(i).state() << ", control " << new_trajectory.at(i).control();
+            }
+        }
         if (std::fabs(alpha - 1.0) < EPS && std::fabs(actual_cost_decay) < _ilqr_config.convergence_threshold) {
             LOG(INFO) << "[Forward pass] Iter " << _iter << ", optimization has converged.";
             _current_solve_status = LQRSolveStatus::CONVERGED;
@@ -216,10 +224,15 @@ void ILQRSolver<N_STATE, N_CONTROL>::forward_pass() {
         }
         const double approx_cost_decay = -(alpha * _approx_cost_decay_info.first + alpha * alpha * _approx_cost_decay_info.second);
         LOG(INFO) << "[Forward pass] Iter " << _iter << ", alpha " << alpha << ", actual cost decay " << actual_cost_decay << ", approx " << approx_cost_decay;
-        if (actual_cost_decay / approx_cost_decay > _ilqr_config.accept_step_threshold) {
+        if (actual_cost_decay > 0.0
+                && (approx_cost_decay < 0.0
+                || actual_cost_decay / approx_cost_decay > _ilqr_config.accept_step_threshold)) {
             LOG(INFO) << "[Forward pass] Iter " << _iter << ", accept alpha " << alpha << ", cost " << new_cost;
             _current_cost = new_cost;
             _current_trajectory = new_trajectory;
+            if (std::fabs(alpha - 1.0) > EPS) {
+                _current_solve_status = LQRSolveStatus::FORWARD_PASS_SMALL_STEP;
+            }
             return;
         }
         alpha *= 0.5;

@@ -9,7 +9,7 @@ using namespace Solver;
 using PathCost = Cost<N_PATH_STATE, N_PATH_CONTROL>;
 constexpr double weight_ref_l = 0.001;
 constexpr double weight_kappa = 10.0;
-constexpr double weight_kappa_rate = 10.0;
+constexpr double weight_kappa_rate = 50.0;
 
 class RefLCost : public PathCost {
 public:
@@ -80,5 +80,11 @@ public:
         ret << weight_kappa_rate;
         return ret;
     }
+};
+
+class EndStateCost : public PathCost {
+public:
+    EndStateCost() : PathCost("end_state_cost") {}
+    double 
 };
 }
