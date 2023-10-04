@@ -211,12 +211,12 @@ void ILQRSolver<N_STATE, N_CONTROL>::forward_pass() {
         // Calculate actual cost decay. 
         new_cost = _problem_manager.calculate_total_cost(new_trajectory);
         const double actual_cost_decay = _current_cost - new_cost;
-        if (std::fabs(alpha - 1.0) < EPS && actual_cost_decay < -100.0) {
-            for (std::size_t i = 0; i < new_trajectory.size(); ++i) {
-                LOG(INFO) << i << " old state " << _current_trajectory.at(i).state() << ", control " << _current_trajectory.at(i).control();
-                LOG(INFO) << i << " new state " << new_trajectory.at(i).state() << ", control " << new_trajectory.at(i).control();
-            }
-        }
+        // if (std::fabs(alpha - 1.0) < EPS && actual_cost_decay < -100.0) {
+        //     for (std::size_t i = 0; i < new_trajectory.size(); ++i) {
+        //         LOG(INFO) << i << " old state " << _current_trajectory.at(i).state() << ", control " << _current_trajectory.at(i).control();
+        //         LOG(INFO) << i << " new state " << new_trajectory.at(i).state() << ", control " << new_trajectory.at(i).control();
+        //     }
+        // }
         if (std::fabs(alpha - 1.0) < EPS && std::fabs(actual_cost_decay) < _ilqr_config.convergence_threshold) {
             LOG(INFO) << "[Forward pass] Iter " << _iter << ", optimization has converged.";
             _current_solve_status = LQRSolveStatus::CONVERGED;

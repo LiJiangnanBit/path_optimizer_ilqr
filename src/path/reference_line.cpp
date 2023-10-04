@@ -1,6 +1,7 @@
 #include "reference_line.h"
 #include "tool.h"
 #include <float.h>
+#include "glog/logging.h"
 
 namespace PathPlanning {
 
@@ -44,7 +45,7 @@ SLPosition ReferenceLine::get_projection(const XYPosition& xy) const {
         tmp_s += grid;
     }
     // Newton's method
-    return get_projection_by_newton(xy, tmp_s);
+    return get_projection_by_newton(xy, min_dis_s);
 }
 
 SLPosition ReferenceLine::get_projection_by_newton(const XYPosition& xy, double hint_s) const {

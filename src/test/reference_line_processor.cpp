@@ -105,8 +105,8 @@ bool ReferenceLineProcessor::search(std::shared_ptr<ReferenceLine> reference_lin
         return false;
     }
 
-    const tk::spline &x_s = reference_line_out->x_s();
-    const tk::spline &y_s = reference_line_out->y_s();
+    // const tk::spline &x_s = reference_line_out->x_s();
+    // const tk::spline &y_s = reference_line_out->y_s();
     // Sampling interval.
     const auto init_sl = reference_line_out->get_projection(XYPosition{_init_point.x, _init_point.y});
     double tmp_s = init_sl.s;
@@ -217,12 +217,11 @@ bool ReferenceLineProcessor::search(std::shared_ptr<ReferenceLine> reference_lin
             double upper_bound = check_s + ptr->rough_upper_bound;
             double lower_bound = -check_s + ptr->rough_lower_bound;
             static const double check_limit = 6.0;
-            double ref_x = x_s(ptr->s);
-            double ref_y = y_s(ptr->s);
+            const auto ref_pt = reference_line_out->get_reference_point(ptr->s);
             while (upper_bound < check_limit) {
                 grid_map::Position pos;
-                pos(0) = ref_x + upper_bound * cos(ptr->heading + M_PI_2);
-                pos(1) = ref_y + upper_bound * sin(ptr->heading + M_PI_2);
+                pos(0) = ref_pt.x + upper_bound * cos(ptr->heading + M_PI_2);
+                pos(1) = ref_pt.y + upper_bound * sin(ptr->heading + M_PI_2);
                 if (_map.isInside(pos)
                     && _map.getObstacleDistance(pos) > check_s) {
                     upper_bound += check_s;
@@ -233,8 +232,8 @@ bool ReferenceLineProcessor::search(std::shared_ptr<ReferenceLine> reference_lin
             }
             while (lower_bound > -check_limit) {
                 grid_map::Position pos;
-                pos(0) = ref_x + lower_bound * cos(ptr->heading + M_PI_2);
-                pos(1) = ref_y + lower_bound * sin(ptr->heading + M_PI_2);
+                pos(0) = ref_pt.x + lower_bound * cos(ptr->heading + M_PI_2);
+                pos(1) = ref_pt.y + lower_bound * sin(ptr->heading + M_PI_2);
                 if (_map.isInside(pos)
                     && _map.getObstacleDistance(pos) > check_s) {
                     lower_bound -= check_s;
@@ -242,6 +241,11 @@ bool ReferenceLineProcessor::search(std::shared_ptr<ReferenceLine> reference_lin
                     lower_bound += check_s;
                     break;
                 }
+            }
+            if (ref_pt.kappa > 0.0001) {
+                upper_bound = std::min(upper_bound, 1.0 / ref_pt.kappa);
+            } else if (ref_pt.kappa < -0.0001) {
+                lower_bound = std::max(lower_bound, 1.0 / ref_pt.kappa);
             }
             layers_bounds_.emplace_back(lower_bound, upper_bound);
         }

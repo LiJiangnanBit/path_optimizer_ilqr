@@ -1,10 +1,16 @@
 #include <cmath>
 #include "path_problem_manager.h"
 #include "path_costs.h"
+#include "path_constraints.h"
 #include "tool.h"
 
 namespace PathPlanning {
 using namespace Solver;
+
+constexpr double WEIGHT_REF_L = 0.001;
+constexpr double WEIGHT_KAPPA = 10.0;
+constexpr double WEIGHT_KAPPA_RATE = 50.0;
+constexpr double WEIGHT_END_L = 0.1;
 
 void PathProblemManager::formulate_path_problem(const FreeSpace& free_space, const ReferenceLine& reference_line) {
     // Initialize knots and costs.
@@ -44,9 +50,10 @@ void PathProblemManager::calculate_init_trajectory(const ReferenceLine& referenc
 
 void PathProblemManager::add_costs() {
     CHECK(_costs.size() == num_steps());
-    std::shared_ptr<PathCost> ref_l_cost_ptr(new RefLCost());
-    std::shared_ptr<PathCost> kappa_cost_ptr(new KappaCost());
-    std::shared_ptr<PathCost> kappa_rate_cost_ptr(new KappaRateCost());
+    std::shared_ptr<PathCost> ref_l_cost_ptr(new RefLCost(WEIGHT_REF_L));
+    std::shared_ptr<PathCost> kappa_cost_ptr(new KappaCost(WEIGHT_KAPPA));
+    std::shared_ptr<PathCost> kappa_rate_cost_ptr(new KappaRateCost(WEIGHT_KAPPA_RATE));
+    std::shared_ptr<PathCost> end_ref_l_cost_ptr(new RefLCost(WEIGHT_END_L, "_end_state"));
     for (std::size_t step = 0; step < num_steps(); ++step) {
         _costs.at(step)[ref_l_cost_ptr->name()] = ref_l_cost_ptr;
         _costs.at(step)[kappa_cost_ptr->name()] = kappa_cost_ptr;
@@ -54,6 +61,7 @@ void PathProblemManager::add_costs() {
             _costs.at(step)[kappa_rate_cost_ptr->name()] = kappa_rate_cost_ptr;
         }
     }
+    _costs.back()[end_ref_l_cost_ptr->name()] = end_ref_l_cost_ptr;
 }
 
 Variable<N_PATH_STATE> FrenetPathDynamics::move_forward(const Node<N_PATH_STATE , N_PATH_CONTROL>& node, double move_dist) const {
