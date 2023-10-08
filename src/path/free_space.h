@@ -21,6 +21,7 @@ public:
     void set_reference_line(std::shared_ptr<ReferenceLine> ref_ptr) { _p_reference_line = ref_ptr; }
     const std::vector<BoundaryPoint>& boundary_points() const { return _boundary_points; }
     std::vector<BoundaryPoint>* mutable_boundary_points() { return &_boundary_points; }
+    bool get_l_bound_for_circle(double s, double r, double* lower_bound, double* upper_bound) const;
 private:
     std::shared_ptr<ReferenceLine> _p_reference_line;
     std::vector<BoundaryPoint> _boundary_points; 

@@ -36,9 +36,29 @@ public:
         const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step) {
             return Eigen::MatrixXd::Zero(N_CONTROL, N_STATE);
         };
-    const std::string name() const { return _name; } 
+    const std::string name() const { return _name; }
+    virtual void update(const Trajectory<N_STATE, N_CONTROL>& trajectory) {}
 private:
     const std::string _name;
+};
+
+template<std::size_t N, std::size_t M>
+class ExpBarrierFunction {
+public:
+    ExpBarrierFunction(double q1, double q2) : _q1(q1), _q2(q2) {}
+    double value(double x) const {
+        return _q1 * std::exp(_q2 * x);
+    }
+    Eigen::Matrix<double, N, 1> dx(double x, const Eigen::Matrix<double, N, 1>& dx) const {
+        return _q1 * _q2 * std::exp(_q2 * x) * dx;
+    }
+    Eigen::Matrix<double, N, M> ddx(double x, const Eigen::Matrix<double, N, 1>& dx, const Eigen::Matrix<double, N, M>& ddx) const {
+        return _q1 * _q2 * std::exp(_q2 * x) * ddx + _q1 * _q2 * _q2 * std::exp(_q2 * x) * dx * dx.transpose();
+    }
+
+private:
+    double _q1 = 1.0;
+    double _q2 = 1.0;
 };
 
 template<std::size_t N_STATE, std::size_t N_CONTROL>
@@ -66,6 +86,7 @@ public:
     std::size_t num_steps() const { return _knots.size(); }
     const Dynamics<N_STATE, N_CONTROL>& dynamics() const { return *_p_dynamics; }
     const Trajectory<N_STATE, N_CONTROL>& init_trajectory() const { return _init_trajectory; }
+    void update_dynamic_costs(const Trajectory<N_STATE, N_CONTROL>& trajectory);
 
     Eigen::Matrix<double, N_STATE, 1> dx(
         const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step) const;
@@ -82,6 +103,8 @@ protected:
     std::vector<CostMap<N_STATE, N_CONTROL>> _costs;
     std::shared_ptr<Dynamics<N_STATE, N_CONTROL>> _p_dynamics;
     Trajectory<N_STATE, N_CONTROL> _init_trajectory;
+    // Some costs may need to be refreshed.
+    std::vector<std::shared_ptr<Cost<N_STATE, N_CONTROL>>> _dynamic_costs;
 };
 
 template <std::size_t N_STATE, std::size_t N_CONTROL>
@@ -151,14 +174,25 @@ double ProblemManager<N_STATE, N_CONTROL>::calculate_total_cost(
     // CHECK_EQ(Trajectory.size(), num_steps());
     const std::size_t size = std::min(_costs.size(), trajectory.size());
     double total_cost = 0.0;
+    std::unordered_map<std::string, double> cost_values;
     for (std::size_t i = 0; i < size; ++i) {
         for (const auto& cost_pair : _costs.at(i)) {
-            // LOG(INFO) << "[Test] init cost step i " << i << ", name " << cost_pair.second->name() << ", value " << cost_pair.second->cost_value(trajectory, i);
             total_cost += cost_pair.second->cost_value(trajectory, i);
+            cost_values[cost_pair.second->name()] += cost_pair.second->cost_value(trajectory, i);
         }
     }
+    // for (const auto& pair : cost_values) {
+    //     LOG(INFO) << "cost name " << pair.first << ", value " << pair.second;
+    // }
     // LOG(INFO) << "[Test] total value " << total_cost;
     return total_cost;
+}
+
+template <std::size_t N_STATE, std::size_t N_CONTROL>
+void ProblemManager<N_STATE, N_CONTROL>::update_dynamic_costs(const Trajectory<N_STATE, N_CONTROL>& trajectory) {
+    for (auto cost : _dynamic_costs) {
+        cost->update(trajectory);
+    }
 }
 
 }

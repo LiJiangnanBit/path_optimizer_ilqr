@@ -1,7 +1,6 @@
 #include <cmath>
 #include "path_problem_manager.h"
 #include "path_costs.h"
-#include "path_constraints.h"
 #include "tool.h"
 
 namespace PathPlanning {
@@ -21,7 +20,7 @@ void PathProblemManager::formulate_path_problem(const FreeSpace& free_space, con
     // Init trajectory.
     calculate_init_trajectory(reference_line);
     // Add costs and constraints.
-    add_costs();
+    add_costs(free_space);
 }
 
 void PathProblemManager::sample_knots() {
@@ -48,17 +47,24 @@ void PathProblemManager::calculate_init_trajectory(const ReferenceLine& referenc
     }
 }
 
-void PathProblemManager::add_costs() {
+void PathProblemManager::add_costs(const FreeSpace& free_space) {
     CHECK(_costs.size() == num_steps());
     std::shared_ptr<PathCost> ref_l_cost_ptr(new RefLCost(WEIGHT_REF_L));
     std::shared_ptr<PathCost> kappa_cost_ptr(new KappaCost(WEIGHT_KAPPA));
     std::shared_ptr<PathCost> kappa_rate_cost_ptr(new KappaRateCost(WEIGHT_KAPPA_RATE));
     std::shared_ptr<PathCost> end_ref_l_cost_ptr(new RefLCost(WEIGHT_END_L, "_end_state"));
+    std::shared_ptr<PathCost> rear_boundary_constraint_ptr(new RearBoundaryConstraint(free_space, 0.5, 2.5));
+
+    _dynamic_costs.emplace_back(rear_boundary_constraint_ptr);
+    
     for (std::size_t step = 0; step < num_steps(); ++step) {
         _costs.at(step)[ref_l_cost_ptr->name()] = ref_l_cost_ptr;
         _costs.at(step)[kappa_cost_ptr->name()] = kappa_cost_ptr;
         if (step < num_steps() - 1) {
             _costs.at(step)[kappa_rate_cost_ptr->name()] = kappa_rate_cost_ptr;
+        }
+        if (step > 0) {
+            _costs.at(step)[rear_boundary_constraint_ptr->name()] = rear_boundary_constraint_ptr;
         }
     }
     _costs.back()[end_ref_l_cost_ptr->name()] = end_ref_l_cost_ptr;

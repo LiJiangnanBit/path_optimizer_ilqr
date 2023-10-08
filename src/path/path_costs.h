@@ -6,6 +6,11 @@
 
 namespace PathPlanning {
 
+constexpr double vehicle_length = 4.8;
+constexpr double vehicle_width = 1.9;
+constexpr double rear_axle_to_center = 1.4;
+constexpr double wheel_base = 3.6;
+
 using namespace Solver;
 using PathCost = Cost<N_PATH_STATE, N_PATH_CONTROL>;
 
@@ -84,6 +89,55 @@ public:
     }
 private:
     double _weight = 0.0;
+};
+
+// ----------Constraints----------------
+
+struct Bound {
+    double lb = 0.0;
+    double ub = 0.0;
+};
+
+class RearBoundaryConstraint : public PathCost {
+public:
+    RearBoundaryConstraint(const FreeSpace& free_space, double q1, double q2, double buffer = 0.0, const std::string& name = "")
+        : PathCost("rear_boundary_constraint" + name), _free_space(free_space), _barrier_function(q1, q2), _buffer(buffer) {}
+    void update(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory) override {
+        if (not _bounds.empty()) {
+            return;
+        }
+        Bound bound;
+        for (const auto& pt : trajectory) {
+            _free_space.get_l_bound_for_circle(pt.sample(), vehicle_width / 2.0, &bound.lb, &bound.ub);
+            _bounds.emplace_back(bound);
+            // LOG(INFO) << "s " << pt.sample() << ", lb " << bound.lb << ", ub " << bound.ub;
+        }
+    }
+    double cost_value(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step) override {
+        CHECK(step < _bounds.size());
+        const auto& bound = _bounds.at(step);
+        const double l = trajectory.at(step).state()(L_INDEX);
+        return _barrier_function.value(bound.lb + _buffer - l) + _barrier_function.value(l - bound.ub + _buffer);
+    }
+    Eigen::Matrix<double, N_PATH_STATE, 1> dx(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step) override {
+        CHECK(step < _bounds.size());
+        const auto& bound = _bounds.at(step);
+        const double l = trajectory.at(step).state()(L_INDEX);
+        return _barrier_function.dx(bound.lb + _buffer - l, {-1.0, 0.0, 0.0}) + _barrier_function.dx(l - bound.ub + _buffer, {1.0, 0.0, 0.0});
+    }
+    Eigen::Matrix<double, N_PATH_STATE, N_PATH_STATE> dxx(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step) override {
+        CHECK(step < _bounds.size());
+        const auto& bound = _bounds.at(step);
+        const double l = trajectory.at(step).state()(L_INDEX);
+        return _barrier_function.ddx(bound.lb + _buffer - l, {-1.0, 0.0, 0.0}, Eigen::MatrixXd::Zero(N_PATH_STATE, N_PATH_STATE))
+            + _barrier_function.ddx(l - bound.ub + _buffer, {1.0, 0.0, 0.0}, Eigen::MatrixXd::Zero(N_PATH_STATE, N_PATH_STATE));
+    }
+
+private:
+    const FreeSpace& _free_space;
+    double _buffer = 0.0;
+    std::vector<Bound> _bounds;
+    ExpBarrierFunction<N_PATH_STATE, N_PATH_STATE>  _barrier_function;
 };
 
 }

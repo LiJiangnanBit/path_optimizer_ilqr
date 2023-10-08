@@ -48,6 +48,7 @@ struct XYPosition {
     double x = 0.0;
     double y = 0.0;
 };
+using Vector = XYPosition;
 
 struct SLPosition {
     double s = 0.0;

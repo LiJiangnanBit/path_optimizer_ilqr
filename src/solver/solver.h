@@ -46,10 +46,9 @@ template <std::size_t N_STATE, std::size_t N_CONTROL>
 class ILQRSolver {
 
 public:
-    ILQRSolver(const ProblemManager<N_STATE, N_CONTROL>& problem_manager)
+    ILQRSolver(ProblemManager<N_STATE, N_CONTROL>& problem_manager)
         : _problem_manager(problem_manager),
         _current_trajectory(problem_manager.init_trajectory()),
-        _current_cost(problem_manager.calculate_total_cost(problem_manager.init_trajectory())),
         _num_steps(problem_manager.num_steps()),
         _k(problem_manager.num_steps(), Eigen::MatrixXd::Zero(N_CONTROL, N_CONTROL)),
         _K(problem_manager.num_steps(), Eigen::MatrixXd::Zero(N_CONTROL, N_STATE)),
@@ -59,6 +58,8 @@ public:
         _approx_cost_decay_info({0.0, 0.0}) {
             CHECK_EQ(_current_trajectory.size(), _num_steps);
             CHECK_GT(_current_trajectory.size(), 0);
+            _problem_manager.update_dynamic_costs(_current_trajectory);
+            _current_cost = problem_manager.calculate_total_cost(problem_manager.init_trajectory());
         };
     ILQRSolveStatus solve();
     Trajectory<N_STATE, N_CONTROL> final_trajectory() const { return _current_trajectory; }
@@ -69,7 +70,7 @@ private:
     void forward_pass();
     inline void increase_mu();
     inline void decrease_mu();
-    const ProblemManager<N_STATE, N_CONTROL>& _problem_manager;
+    ProblemManager<N_STATE, N_CONTROL>& _problem_manager;
     Trajectory<N_STATE, N_CONTROL> _current_trajectory;
     double _current_cost = 0.0;
     std::size_t _num_steps = 0;
@@ -96,9 +97,10 @@ ILQRSolveStatus ILQRSolver<N_STATE, N_CONTROL>::solve() {
         backward_pass();
         forward_pass();
         // Process mu.
-        if (_current_solve_status != LQRSolveStatus::RUNNING) {
+        if (_current_solve_status == LQRSolveStatus::BACKWARD_PASS_FAIL
+                || _current_solve_status == LQRSolveStatus::FORWARD_PASS_FAIL) {
             increase_mu();
-        } else {
+        } else if (_current_solve_status == LQRSolveStatus::RUNNING) {
             decrease_mu();
         }
         // Process optimization result.
@@ -136,6 +138,7 @@ void ILQRSolver<N_STATE, N_CONTROL>::calculate_derivatives() {
         return;
     }
     _current_solve_status = LQRSolveStatus::RUNNING;
+    _problem_manager.update_dynamic_costs(_current_trajectory);
     for (std::size_t i = 0; i < _num_steps; ++i) {
         const auto& state = _current_trajectory.at(i).state();
         const auto& control = _current_trajectory.at(i).control();
@@ -227,6 +230,7 @@ void ILQRSolver<N_STATE, N_CONTROL>::forward_pass() {
         if (actual_cost_decay > 0.0
                 && (approx_cost_decay < 0.0
                 || actual_cost_decay / approx_cost_decay > _ilqr_config.accept_step_threshold)) {
+        // if (true) {
             LOG(INFO) << "[Forward pass] Iter " << _iter << ", accept alpha " << alpha << ", cost " << new_cost;
             _current_cost = new_cost;
             _current_trajectory = new_trajectory;

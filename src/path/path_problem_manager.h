@@ -25,11 +25,12 @@ struct Config {
 class PathProblemManager : public ProblemManager<N_PATH_STATE , N_PATH_CONTROL > {
 public:
     void formulate_path_problem(const FreeSpace& free_space, const ReferenceLine& reference_line);
+    const Config& config() const { return _config; }
 
 private:
     void sample_knots();
     void calculate_init_trajectory(const ReferenceLine& reference_line);
-    void add_costs();
+    void add_costs(const FreeSpace& free_space);
     Config _config;
 };
 
