@@ -46,4 +46,15 @@ private:
 template <std::size_t N_STATE, std::size_t N_CONTROL>
 using Trajectory = std::vector<Node<N_STATE, N_CONTROL>>;
 
+template <std::size_t N_STATE, std::size_t N_CONTROL>
+struct DerivativesInfo {
+    Eigen::Matrix<double, N_STATE, 1> lx = Eigen::MatrixXd::Zero(N_STATE, 1);
+    Eigen::Matrix<double, N_CONTROL, 1> lu =  Eigen::MatrixXd::Zero(N_CONTROL, 1);
+    Eigen::Matrix<double, N_STATE, N_STATE> lxx = Eigen::MatrixXd::Zero(N_STATE, N_STATE);
+    Eigen::Matrix<double, N_CONTROL, N_CONTROL> luu = Eigen::MatrixXd::Zero(N_CONTROL, N_CONTROL);
+    Eigen::Matrix<double, N_CONTROL, N_STATE> lux = Eigen::MatrixXd::Zero(N_CONTROL, N_STATE);
+    Eigen::Matrix<double, N_STATE, N_STATE> fx = Eigen::MatrixXd::Zero(N_STATE, N_STATE);
+    Eigen::Matrix<double, N_STATE, N_CONTROL> fu = Eigen::MatrixXd::Zero(N_STATE, N_CONTROL);
+};
+
 }

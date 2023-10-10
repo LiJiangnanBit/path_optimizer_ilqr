@@ -16,26 +16,7 @@ public:
     virtual double cost_value(const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step) {
         return 0.0;
     }
-    virtual Eigen::Matrix<double, N_STATE, 1> dx(
-        const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step) {
-            return Eigen::MatrixXd::Zero(N_STATE, 1);
-        };
-    virtual Eigen::Matrix<double, N_CONTROL, 1> du(
-        const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step) {
-            return Eigen::MatrixXd::Zero(N_CONTROL, 1);
-        };
-    virtual Eigen::Matrix<double, N_STATE, N_STATE> dxx(
-        const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step) {
-            return Eigen::MatrixXd::Zero( N_STATE, N_STATE);
-        };
-    virtual Eigen::Matrix<double, N_CONTROL, N_CONTROL> duu(
-        const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step) {
-            return Eigen::MatrixXd::Zero(N_CONTROL, N_CONTROL);
-        };
-    virtual Eigen::Matrix<double, N_CONTROL, N_STATE> dux(
-        const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step) {
-            return Eigen::MatrixXd::Zero(N_CONTROL, N_STATE);
-        };
+    virtual void calculate_derivatives(const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step, DerivativesInfo<N_STATE, N_CONTROL>* derivatives) = 0;
     const std::string name() const { return _name; }
     virtual void update(const Trajectory<N_STATE, N_CONTROL>& trajectory) {}
 private:
@@ -87,17 +68,7 @@ public:
     const Dynamics<N_STATE, N_CONTROL>& dynamics() const { return *_p_dynamics; }
     const Trajectory<N_STATE, N_CONTROL>& init_trajectory() const { return _init_trajectory; }
     void update_dynamic_costs(const Trajectory<N_STATE, N_CONTROL>& trajectory);
-
-    Eigen::Matrix<double, N_STATE, 1> dx(
-        const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step) const;
-    Eigen::Matrix<double, N_CONTROL, 1> du(
-        const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step) const;
-    Eigen::Matrix<double, N_STATE, N_STATE> dxx(
-        const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step) const;
-    Eigen::Matrix<double, N_CONTROL, N_CONTROL> duu (
-        const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step) const;
-    Eigen::Matrix<double, N_CONTROL, N_STATE> dux(
-        const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step) const;
+    void calculate_derivatives(const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step, DerivativesInfo<N_STATE, N_CONTROL>* derivatives) const;
 protected:
     std::vector<double> _knots;
     std::vector<CostMap<N_STATE, N_CONTROL>> _costs;
@@ -117,55 +88,13 @@ bool ProblemManager<N_STATE, N_CONTROL>::add_cost_item(std::shared_ptr<const Cos
 }
 
 template <std::size_t N_STATE, std::size_t N_CONTROL>
-Eigen::Matrix<double, N_STATE, 1> ProblemManager<N_STATE, N_CONTROL>::dx(
-    const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step) const {
+void ProblemManager<N_STATE, N_CONTROL>::calculate_derivatives(const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step, DerivativesInfo<N_STATE, N_CONTROL>* derivatives) const {
     CHECK(step < _costs.size());
-    Eigen::Matrix<double, N_STATE, 1> ret = Eigen::MatrixXd::Zero(N_STATE, 1);
+    DerivativesInfo<N_STATE, N_CONTROL> tmp_derivatives;
     for (const auto& cost_pair : _costs.at(step)) {
-        // LOG_IF(INFO, step == 50) << "[Test] step 50 cost name " << cost_pair.second->name() << ", value " << cost_pair.second->dx(trajectory, step);
-        ret += cost_pair.second->dx(trajectory, step);
+        cost_pair.second->calculate_derivatives(trajectory, step, &tmp_derivatives);
     }
-    return ret;
-}
-template <std::size_t N_STATE, std::size_t N_CONTROL>
-Eigen::Matrix<double, N_CONTROL, 1> ProblemManager<N_STATE, N_CONTROL>::du(
-    const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step) const {
-    CHECK(step < _costs.size());
-    Eigen::Matrix<double, N_CONTROL, 1> ret = Eigen::MatrixXd::Zero(N_CONTROL, 1);
-    for (const auto& cost_pair : _costs.at(step)) {
-        ret += cost_pair.second->du(trajectory, step);
-    }
-    return ret;
-}
-template <std::size_t N_STATE, std::size_t N_CONTROL>
-Eigen::Matrix<double, N_STATE, N_STATE> ProblemManager<N_STATE, N_CONTROL>::dxx(
-    const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step) const {
-    CHECK(step < _costs.size());
-    Eigen::Matrix<double, N_STATE, N_STATE> ret = Eigen::MatrixXd::Zero(N_STATE, N_STATE);
-    for (const auto& cost_pair : _costs.at(step)) {
-        ret += cost_pair.second->dxx(trajectory, step);
-    }
-    return ret;
-}
-template <std::size_t N_STATE, std::size_t N_CONTROL>
-Eigen::Matrix<double, N_CONTROL, N_CONTROL> ProblemManager<N_STATE, N_CONTROL>::duu (
-    const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step) const {
-    CHECK(step < _costs.size());
-    Eigen::Matrix<double, N_CONTROL, N_CONTROL> ret = Eigen::MatrixXd::Zero(N_CONTROL, N_CONTROL);
-    for (const auto& cost_pair : _costs.at(step)) {
-        ret += cost_pair.second->duu(trajectory, step);
-    }
-    return ret;
-}
-template <std::size_t N_STATE, std::size_t N_CONTROL>
-Eigen::Matrix<double, N_CONTROL, N_STATE> ProblemManager<N_STATE, N_CONTROL>::dux(
-    const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step) const {
-    CHECK(step < _costs.size());
-    Eigen::Matrix<double, N_CONTROL, N_STATE> ret = Eigen::MatrixXd::Zero(N_CONTROL, N_STATE);
-    for (const auto& cost_pair : _costs.at(step)) {
-        ret += cost_pair.second->dux(trajectory, step);
-    }
-    return ret;
+    *derivatives = std::move(tmp_derivatives);
 }
 
 template <std::size_t N_STATE, std::size_t N_CONTROL>

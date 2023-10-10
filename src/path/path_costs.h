@@ -22,18 +22,15 @@ public:
         const double l = trajectory.at(step).state()(L_INDEX);
         return 0.5 * _weight * l * l;
     }
-    Eigen::Matrix<double, N_PATH_STATE, 1> dx(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step) override {
+
+    void calculate_derivatives(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step, DerivativesInfo<N_PATH_STATE, N_PATH_CONTROL>* derivatives) override {
         CHECK(step < trajectory.size());
         const double l = trajectory.at(step).state()(L_INDEX);
-        Eigen::Matrix<double, N_PATH_STATE, 1> ret;
-        ret << _weight * l, 0.0, 0.0;
-        return ret;
-    }
-    Eigen::Matrix<double, N_PATH_STATE, N_PATH_STATE> dxx(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step) override {
-        CHECK(step < trajectory.size());
-        Eigen::Matrix<double, N_PATH_STATE, N_PATH_STATE> ret;
-        ret << _weight, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
-        return ret;
+        Eigen::Matrix<double, N_PATH_STATE, 1> dx{_weight * l, 0.0, 0.0};
+        Eigen::Matrix<double, N_PATH_STATE, N_PATH_STATE> dxx;
+        dxx << _weight, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+        derivatives->lx += dx;
+        derivatives->lxx += dxx;
     }
 private:
     double _weight = 0.0;
@@ -47,20 +44,17 @@ public:
         const double kappa = trajectory.at(step).state()(K_INDEX);
         return 0.5 * _weight * kappa * kappa;
     }
-    Eigen::Matrix<double, N_PATH_STATE, 1> dx(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step) override {
+
+    void calculate_derivatives(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step, DerivativesInfo<N_PATH_STATE, N_PATH_CONTROL>* derivatives) override {
         CHECK(step < trajectory.size());
         const double kappa = trajectory.at(step).state()(K_INDEX);
-        Eigen::Matrix<double, N_PATH_STATE, 1> ret;
-        ret << 0.0, 0.0, _weight * kappa;
-        return ret;
-    }
-    Eigen::Matrix<double, N_PATH_STATE, N_PATH_STATE> dxx(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step) override {
-        CHECK(step < trajectory.size());
-        Eigen::Matrix<double, N_PATH_STATE, N_PATH_STATE> ret;
-        ret << 0.0, 0.0, 0.0,
+        Eigen::Matrix<double, N_PATH_STATE, 1> dx{0.0, 0.0, _weight * kappa};
+        Eigen::Matrix<double, N_PATH_STATE, N_PATH_STATE> dxx;
+        dxx <<  0.0, 0.0, 0.0,
             0.0, 0.0, 0.0,
             0.0, 0.0, _weight;
-        return ret;
+        derivatives->lx += dx;
+        derivatives->lxx += dxx;
     }
 private:
     double _weight = 0.0;
@@ -74,18 +68,14 @@ public:
         const double kappa_rate = trajectory.at(step).control()(KR_INDEX);
         return 0.5 * _weight * kappa_rate * kappa_rate;
     }
-    Eigen::Matrix<double, N_PATH_CONTROL, 1> du(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step) override {
+
+    void calculate_derivatives(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step, DerivativesInfo<N_PATH_STATE, N_PATH_CONTROL>* derivatives) override {
         CHECK(step < trajectory.size() - 1);
         const double kappa_rate = trajectory.at(step).control()(KR_INDEX);
-        Eigen::Matrix<double, N_PATH_CONTROL, 1> ret;
-        ret << _weight * kappa_rate;
-        return ret;
-    }
-    Eigen::Matrix<double, N_PATH_CONTROL, N_PATH_CONTROL> duu(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step) override {
-        CHECK(step < trajectory.size() - 1);
-        Eigen::Matrix<double, N_PATH_CONTROL, N_PATH_CONTROL> ret;
-        ret << _weight;
-        return ret;
+        Eigen::Matrix<double, N_PATH_CONTROL, 1> du{_weight * kappa_rate};
+        Eigen::Matrix<double, N_PATH_CONTROL, N_PATH_CONTROL> duu{_weight};
+        derivatives->lu += du;
+        derivatives->luu += duu;
     }
 private:
     double _weight = 0.0;
@@ -119,17 +109,13 @@ public:
         const double l = trajectory.at(step).state()(L_INDEX);
         return _barrier_function.value(bound.lb + _buffer - l) + _barrier_function.value(l - bound.ub + _buffer);
     }
-    Eigen::Matrix<double, N_PATH_STATE, 1> dx(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step) override {
+
+    void calculate_derivatives(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step, DerivativesInfo<N_PATH_STATE, N_PATH_CONTROL>* derivatives) override {
         CHECK(step < _bounds.size());
         const auto& bound = _bounds.at(step);
         const double l = trajectory.at(step).state()(L_INDEX);
-        return _barrier_function.dx(bound.lb + _buffer - l, {-1.0, 0.0, 0.0}) + _barrier_function.dx(l - bound.ub + _buffer, {1.0, 0.0, 0.0});
-    }
-    Eigen::Matrix<double, N_PATH_STATE, N_PATH_STATE> dxx(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step) override {
-        CHECK(step < _bounds.size());
-        const auto& bound = _bounds.at(step);
-        const double l = trajectory.at(step).state()(L_INDEX);
-        return _barrier_function.ddx(bound.lb + _buffer - l, {-1.0, 0.0, 0.0}, Eigen::MatrixXd::Zero(N_PATH_STATE, N_PATH_STATE))
+        derivatives->lx += _barrier_function.dx(bound.lb + _buffer - l, {-1.0, 0.0, 0.0}) + _barrier_function.dx(l - bound.ub + _buffer, {1.0, 0.0, 0.0});
+        derivatives->lxx += _barrier_function.ddx(bound.lb + _buffer - l, {-1.0, 0.0, 0.0}, Eigen::MatrixXd::Zero(N_PATH_STATE, N_PATH_STATE))
             + _barrier_function.ddx(l - bound.ub + _buffer, {1.0, 0.0, 0.0}, Eigen::MatrixXd::Zero(N_PATH_STATE, N_PATH_STATE));
     }
 

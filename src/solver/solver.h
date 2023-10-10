@@ -32,17 +32,6 @@ struct ILQRConfig {
 };
 
 template <std::size_t N_STATE, std::size_t N_CONTROL>
-    struct DerivativesInfo {
-    Eigen::Matrix<double, N_STATE, 1> lx;
-    Eigen::Matrix<double, N_CONTROL, 1> lu;
-    Eigen::Matrix<double, N_STATE, N_STATE> lxx;
-    Eigen::Matrix<double, N_CONTROL, N_CONTROL> luu;
-    Eigen::Matrix<double, N_CONTROL, N_STATE> lux;
-    Eigen::Matrix<double, N_STATE, N_STATE> fx;
-    Eigen::Matrix<double, N_STATE, N_CONTROL> fu;
-};
-
-template <std::size_t N_STATE, std::size_t N_CONTROL>
 class ILQRSolver {
 
 public:
@@ -140,14 +129,8 @@ void ILQRSolver<N_STATE, N_CONTROL>::calculate_derivatives() {
     _current_solve_status = LQRSolveStatus::RUNNING;
     _problem_manager.update_dynamic_costs(_current_trajectory);
     for (std::size_t i = 0; i < _num_steps; ++i) {
-        const auto& state = _current_trajectory.at(i).state();
-        const auto& control = _current_trajectory.at(i).control();
         auto& derivative = _derivatives.at(i);
-        derivative.lx = _problem_manager.dx(_current_trajectory, i);
-        derivative.lu = _problem_manager.du(_current_trajectory, i);
-        derivative.lxx = _problem_manager.dxx(_current_trajectory, i);
-        derivative.luu = _problem_manager.duu(_current_trajectory, i);
-        derivative.lux = _problem_manager.dux(_current_trajectory, i);
+        _problem_manager.calculate_derivatives(_current_trajectory, i, &derivative);
         if (i < _num_steps - 1) {
             const double move_dist = _problem_manager.knots().at(i + 1) - _problem_manager.knots().at(i);
             derivative.fx = _problem_manager.dynamics().dx(_current_trajectory.at(i), move_dist);
