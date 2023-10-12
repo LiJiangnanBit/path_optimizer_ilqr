@@ -1,4 +1,5 @@
 #include <cmath>
+#include <glog/logging.h>
 #include "free_space.h"
 
 namespace PathPlanning {
@@ -32,4 +33,37 @@ bool FreeSpace::get_l_bound_for_circle(double s, double r, double* lower_bound, 
     }
     return true;
 }
+
+void FreeSpace::update_circle_bounds(double r) {
+    _circle_bounds.clear();
+    for (const auto& bound : _boundary_points) {
+        BoundaryPoint circle_bound;
+        circle_bound.s = bound.s;
+        if (get_l_bound_for_circle(bound.s, r, &circle_bound.lb_l, &circle_bound.ub_l)) {
+            _circle_bounds.emplace_back(circle_bound);
+        }
+    }
+}
+    
+BoundaryPoint FreeSpace::get_circle_bound(double s) const {
+    BoundaryPoint ret;
+    ret.s = s;
+    if (_circle_bounds.empty() || s < _circle_bounds.front().s || s > _circle_bounds.back().s) {
+        return ret;
+    }
+    const auto iter = std::lower_bound(_circle_bounds.begin(), _circle_bounds.end(), s, [](const BoundaryPoint& bound, double s) {
+        return bound.s < s;
+    });
+    if (iter == _circle_bounds.begin()) {
+        ret = _circle_bounds.front();
+    } else if (iter != _circle_bounds.end()) {
+        const auto prev_iter = iter - 1;
+        const double iter_share = (s - prev_iter->s) / (iter->s - prev_iter->s);
+        const double prev_iter_share = (iter->s - s) / (iter->s - prev_iter->s);
+        ret.lb_l = iter_share * iter->lb_l + prev_iter_share * prev_iter->lb_l;
+        ret.ub_l = iter_share * iter->ub_l + prev_iter_share * prev_iter->ub_l;
+    }
+    return ret;
+}
+
 }

@@ -3,6 +3,7 @@
 #include <cfloat>
 #include "reference_line_processor.h"
 #include "path/tool.h"
+#include "path/gflags.h"
 
 using namespace PathPlanning;
 namespace Test {
@@ -268,6 +269,7 @@ bool ReferenceLineProcessor::search(std::shared_ptr<ReferenceLine> reference_lin
         bd_pt.ub_xy = reference_line_out->get_xy_by_sl({s, bound.second});
         free_space_out->mutable_boundary_points()->emplace_back(bd_pt);
     }
+    free_space_out->update_circle_bounds(FLAGS_vehicle_width * 0.5);
     return true;
 }
 
