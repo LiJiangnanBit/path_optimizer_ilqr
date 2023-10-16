@@ -16,34 +16,6 @@ constexpr std::size_t HD_INDEX = 1; // HD for heading diff.
 constexpr std::size_t K_INDEX = 2;
 constexpr std::size_t KR_INDEX = 0; // Control, kappa rate.
 
-// class FrenetPathState : public Variable<N_PATH_STATE> {
-// public:
-//     double l() const { return _vector(0); }
-//     double theta_diff() const { return _vector(1); }
-//     double kappa() const { return _vector(2); }
-//     void set_l(double l) { _vector(0) = l; }
-//     void set_theta_diff(double theta_diff) { _vector(1) = theta_diff; }
-//     void set_kappa(double kappa) { _vector(2) = kappa; }
-// };
-
-// class PathControl : public Variable<N_PATH_CONTROL> {
-// public: 
-//     double dkappa() const { return _vector(0); }
-//     void set_dkappa(double dkappa) { _vector(0) = dkappa; }
-// };
-
-// class PathNode : public Node<3, 1> {
-// public:
-//     const Variable<3>& state() const override { return _state; }
-//     const Variable<1>& control() const override { return _control; }
-//     Variable<3>* mutable_state() override { return &_state; }
-//     Variable<1>* mutable_control() override { return &_control; }
-
-// private:
-//     FrenetPathState _state;
-//     PathControl _control;
-// };
-
 struct XYPosition {
     double x = 0.0;
     double y = 0.0;
