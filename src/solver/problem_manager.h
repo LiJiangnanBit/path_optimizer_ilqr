@@ -110,10 +110,10 @@ double ProblemManager<N_STATE, N_CONTROL>::calculate_total_cost(
             cost_values[cost_pair.second->name()] += cost_pair.second->cost_value(trajectory, i);
         }
     }
-    for (const auto& pair : cost_values) {
-        LOG(INFO) << "cost name " << pair.first << ", value " << pair.second;
-    }
-    LOG(INFO) << "[Test] total value " << total_cost;
+    // for (const auto& pair : cost_values) {
+    //     LOG(INFO) << "cost name " << pair.first << ", value " << pair.second;
+    // }
+    // LOG(INFO) << "[Test] total value " << total_cost;
     return total_cost;
 }
 
