@@ -152,9 +152,7 @@ public:
             info.norm_vec.x = cos(info.front_ref_point.theta + M_PI_2);
             info.norm_vec.y = sin(info.front_ref_point.theta + M_PI_2);
             _free_space.get_l_bound_for_circle(info.front_sl.s, FLAGS_vehicle_width / 2.0, &info.lb, &info.ub);
-            if (i < 10) {
-                LOG(INFO) << "i " << i << ", front s " << info.front_sl.s << ", front l " << info.front_sl.l << ", lb " << info.lb << ", ub " << info.ub;
-            }
+
             _info_vec.emplace_back(std::move(info));
         }
     }
@@ -169,12 +167,12 @@ public:
         const XYPosition front_xy{rear_xy.x + rear_axle_to_front * cos(ego_heading), rear_xy.y + rear_axle_to_front * sin(ego_heading)};
         const auto& info = _info_vec.at(step);
         double front_l = (front_xy.x - info.front_ref_point.x) * info.norm_vec.x + (front_xy.y - info.front_ref_point.y) * info.norm_vec.y;
-        if (step < 10) {
-            LOG(INFO) << step << "front l " << front_l;
-        }
+        // if (step < 10) {
+            // LOG(INFO) << step << "front l " << front_l;
+        // }
         return _barrier_function.value(info.lb + _buffer - front_l) + _barrier_function.value(front_l - info.ub + _buffer);
     }
-
+ 
     void calculate_derivatives(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step, DerivativesInfo<N_PATH_STATE, N_PATH_CONTROL>* derivatives) override {
         CHECK(step < _rear_ref_points.size());
         CHECK(step < _info_vec.size());
@@ -189,9 +187,11 @@ public:
         dldx << norm_vec.x * cos(rear_ref_pt.theta + M_PI_2) + norm_vec.y * sin(rear_ref_pt.theta + M_PI_2),
             -norm_vec.x * rear_axle_to_front * sin(ego_heading) + norm_vec.y * rear_axle_to_front * cos(ego_heading),
             0.0;
+        Eigen::Matrix<double, N_PATH_STATE, N_PATH_STATE> dlddx = Eigen::MatrixXd::Zero(N_PATH_STATE, N_PATH_STATE);
+        dlddx(1, 1) = -norm_vec.x * rear_axle_to_front * cos(ego_heading) - norm_vec.y * rear_axle_to_front * sin(ego_heading);
         derivatives->lx += _barrier_function.dx(info.lb + _buffer - front_l, -dldx) + _barrier_function.dx(front_l - info.ub + _buffer, dldx);
-        derivatives->lxx += _barrier_function.ddx(info.lb + _buffer - front_l, -dldx, Eigen::MatrixXd::Zero(N_PATH_STATE, N_PATH_STATE))
-            + _barrier_function.ddx(front_l - info.ub + _buffer, dldx, Eigen::MatrixXd::Zero(N_PATH_STATE, N_PATH_STATE));
+        derivatives->lxx += _barrier_function.ddx(info.lb + _buffer - front_l, -dldx, -dlddx)
+            + _barrier_function.ddx(front_l - info.ub + _buffer, dldx, dlddx);
     }
 
 private:

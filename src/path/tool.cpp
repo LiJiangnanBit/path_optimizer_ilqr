@@ -18,4 +18,16 @@ double constrainAngle(double angle) {
     }
 }
 
+PathPoint local_to_global(const PathPoint& ref, const PathPoint& target) {
+    PathPoint ret = target;
+    ret.x = target.x * cos(ref.theta) - target.y * sin(ref.theta) + ref.x;
+    ret.y = target.x * sin(ref.theta) + target.y * cos(ref.theta) + ref.y;
+    ret.theta = ref.theta + target.theta;
+    return ret;
+}
+
+PathPoint global_to_local(const PathPoint& ref, const PathPoint& target) {
+
+}
+
 }

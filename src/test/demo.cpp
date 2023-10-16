@@ -29,7 +29,8 @@
 #include "path/data_structure.h"
 #include "path/path_problem_manager.h"
 #include "solver/solver.h"
-
+#include "path/gflags.h"
+#include "path/tool.h"
 
 // TODO: this file is a mess.
 
@@ -195,7 +196,7 @@ int main(int argc, char **argv) {
             reference_line_processor.solve(ref_line_ptr, free_space_ptr);
 
             visualization_msgs::Marker boundary_points_marker =
-                markers.newSphereList(0.5, "boundary points", id++, ros_viz_tools::BLUE, marker_frame_id);
+                markers.newSphereList(0.3, "boundary points", id++, ros_viz_tools::BLUE, marker_frame_id);
             for (const auto& pt : free_space_ptr->boundary_points()) {
                 geometry_msgs::Point p;
                 p.x = pt.lb_xy.x;
@@ -242,23 +243,66 @@ int main(int argc, char **argv) {
             }
             visualization_msgs::Marker result_marker =
                 markers.newLineStrip(0.3, "optimized path", id++, path_color, marker_frame_id);
+            visualization_msgs::Marker vehicle_geometry_marker =
+                markers.newLineList(0.05, "vehicle", id++, ros_viz_tools::GRAY, marker_frame_id);
+            // Visualize vehicle geometry.
+            static const double length{FLAGS_vehicle_length};
+            static const double width{FLAGS_vehicle_width};
+            static const double rtc{FLAGS_rear_axle_to_center};
+            static const double rear_d{length / 2 - rtc};
+            static const double front_d{length - rear_d};
             const auto& opt_path_raw = ilqr_solver.final_trajectory();
-            for (size_t i = 0; i != opt_path_raw.size(); ++i) {
-                PathPlanning::SLPosition sl;
-                sl.s = opt_path_raw[i].sample();
-                sl.l = opt_path_raw[i].state()(PathPlanning::L_INDEX);
-                const auto xy = ref_line_ptr->get_xy_by_sl(sl);
+            const auto result = PathProblemManager::transform_to_path_points(*ref_line_ptr, opt_path_raw);
+            for (size_t i = 0; i != result.size(); ++i) {
+                const auto path_point = result.at(i);
                 geometry_msgs::Point p;
-                p.x = xy.x;
-                p.y = xy.y;
+                p.x = path_point.x;
+                p.y = path_point.y;
                 p.z = 1.0;
                 result_marker.points.push_back(p);
-                const auto k = opt_path_raw[i].state()(PathPlanning::K_INDEX);
+                const auto k = path_point.kappa;
                 path_color.a = std::min(fabs(k) / 0.15, 1.0);
                 path_color.a = std::max((float)0.1, path_color.a);
                 result_marker.colors.emplace_back(path_color);
+                //
+                const double heading = path_point.theta;
+                PathPoint p1, p2, p3, p4;
+                p1.x = front_d;
+                p1.y = width / 2;
+                p2.x = front_d;
+                p2.y = -width / 2;
+                p3.x = -rear_d;
+                p3.y = -width / 2;
+                p4.x = -rear_d;
+                p4.y = width / 2;
+                p1 = local_to_global(path_point, p1);
+                p2 = local_to_global(path_point, p2);
+                p3 = local_to_global(path_point, p3);
+                p4 = local_to_global(path_point, p4);
+                geometry_msgs::Point pp1, pp2, pp3, pp4;
+                pp1.x = p1.x;
+                pp1.y = p1.y;
+                pp1.z = 0.1;
+                pp2.x = p2.x;
+                pp2.y = p2.y;
+                pp2.z = 0.1;
+                pp3.x = p3.x;
+                pp3.y = p3.y;
+                pp3.z = 0.1;
+                pp4.x = p4.x;
+                pp4.y = p4.y;
+                pp4.z = 0.1;
+                vehicle_geometry_marker.points.push_back(pp1);
+                vehicle_geometry_marker.points.push_back(pp2);
+                vehicle_geometry_marker.points.push_back(pp2);
+                vehicle_geometry_marker.points.push_back(pp3);
+                vehicle_geometry_marker.points.push_back(pp3);
+                vehicle_geometry_marker.points.push_back(pp4);
+                vehicle_geometry_marker.points.push_back(pp4);
+                vehicle_geometry_marker.points.push_back(pp1);
             }
             markers.append(result_marker);
+            markers.append(vehicle_geometry_marker);
         }
 
         // Publish the grid_map.

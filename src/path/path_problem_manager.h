@@ -22,10 +22,12 @@ struct Config {
     double planning_length = 0.0;
 };
 
-class PathProblemManager : public ProblemManager<N_PATH_STATE , N_PATH_CONTROL > {
+class PathProblemManager : public ProblemManager<N_PATH_STATE, N_PATH_CONTROL > {
 public:
     void formulate_path_problem(const FreeSpace& free_space, const ReferenceLine& reference_line);
     const Config& config() const { return _config; }
+    static std::vector<PathPoint> transform_to_path_points(
+        const ReferenceLine& reference_line, const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory);
 
 private:
     void sample_knots();

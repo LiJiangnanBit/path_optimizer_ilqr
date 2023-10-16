@@ -47,6 +47,26 @@ void PathProblemManager::calculate_init_trajectory(const ReferenceLine& referenc
     }
 }
 
+std::vector<PathPoint> PathProblemManager::transform_to_path_points(
+    const ReferenceLine& reference_line, const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory) {
+   std::vector<PathPoint> ret;
+   for (const auto& pt : trajectory) {
+        SLPosition sl;
+        sl.s = pt.sample();
+        sl.l = pt.state()(PathPlanning::L_INDEX);
+        const auto xy = reference_line.get_xy_by_sl(sl);
+        PathPoint path_point;
+        path_point.s = sl.s;
+        path_point.l = sl.l;
+        path_point.x = xy.x;
+        path_point.y = xy.y;
+        path_point.theta = constrainAngle(reference_line.get_reference_point(sl.s).theta + pt.state()(HD_INDEX));
+        path_point.kappa = pt.state()(K_INDEX);
+        ret.emplace_back(std::move(path_point));
+   }
+   return ret;
+}
+
 void PathProblemManager::add_costs(const FreeSpace& free_space) {
     CHECK(_costs.size() == num_steps());
     std::shared_ptr<PathCost> ref_l_cost_ptr(new RefLCost(WEIGHT_REF_L));

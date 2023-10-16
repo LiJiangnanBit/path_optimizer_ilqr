@@ -52,12 +52,12 @@ SLPosition ReferenceLine::get_projection_by_newton(const XYPosition& xy, double 
     hint_s = std::min(hint_s, _length);
     double cur_s = hint_s;
     double prev_s = hint_s;
-    double x = 0.0, y = 0.0;
+    double x = 0.0, y = 0.0, dx = 0.0, dy = 0.0;
     for (int i = 0; i < 20; ++i) {
         x = _x_s(cur_s);
         y = _y_s(cur_s);
-        double dx = _x_s.deriv(1, cur_s);
-        double dy = _y_s.deriv(1, cur_s);
+        dx = _x_s.deriv(1, cur_s);
+        dy = _y_s.deriv(1, cur_s);
         double ddx = _x_s.deriv(2, cur_s);
         double ddy = _y_s.deriv(2, cur_s);
         // Ignore coeff 2 in J and H.
@@ -69,7 +69,8 @@ SLPosition ReferenceLine::get_projection_by_newton(const XYPosition& xy, double 
     }
 
     cur_s = std::min(cur_s, _length);
-    return SLPosition{cur_s, distance(xy, XYPosition{x, y})};
+    const double heading_vec_len = sqrt(dx*dx + dy*dy);
+    return SLPosition{cur_s, -(xy.x - x) * dy / heading_vec_len + (xy.y - y) * dx / heading_vec_len};
 }
 
 }

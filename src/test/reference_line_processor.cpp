@@ -9,7 +9,7 @@ using namespace PathPlanning;
 namespace Test {
 
 const double max_lateral_range = 10.0;
-const double lateral_spacing = 0.6;
+const double lateral_spacing = 0.4;
 
 bool ReferenceLineProcessor::solve(std::shared_ptr<ReferenceLine> reference_line_out, std::shared_ptr<FreeSpace> free_space_out) {
     if (not b_spline(reference_line_out)) {
@@ -113,7 +113,7 @@ bool ReferenceLineProcessor::search(std::shared_ptr<ReferenceLine> reference_lin
     double tmp_s = init_sl.s;
     layers_s_list_.clear();
     layers_bounds_.clear();
-    double search_ds = reference_line_out->length() > 6.0 ? 1.5 : 0.5;
+    double search_ds = 0.6;
     while (tmp_s < reference_line_out->length()) {
         layers_s_list_.emplace_back(tmp_s);
         tmp_s += search_ds;
@@ -137,10 +137,6 @@ bool ReferenceLineProcessor::search(std::shared_ptr<ReferenceLine> reference_lin
     for (int i = 0; i < layers_s_list_.size(); ++i) {
         samples.emplace_back(std::vector<DpPoint>());
         double cur_s = layers_s_list_[i];
-        // double ref_x = x_s(cur_s);
-        // double ref_y = y_s(cur_s);
-        // double ref_heading = getHeading(x_s, y_s, cur_s);
-        // double ref_curvature = getCurvature(x_s, y_s, cur_s);
         const auto ref_pt = reference_line_out->get_reference_point(cur_s);
         double ref_r = 1 / ref_pt.kappa;
         double cur_l = -max_lateral_range;
