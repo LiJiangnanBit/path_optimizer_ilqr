@@ -212,7 +212,7 @@ int main(int argc, char **argv) {
 
             // solve
             PathPlanning::PathProblemManager path_problem_manager;
-            path_problem_manager.formulate_path_problem(*free_space_ptr, *ref_line_ptr);
+            path_problem_manager.formulate_path_problem(*free_space_ptr, *ref_line_ptr, start_state);
             Solver::ILQRSolver<PathPlanning::N_PATH_STATE, PathPlanning::N_PATH_CONTROL> ilqr_solver(path_problem_manager);
             const auto solve_status = ilqr_solver.solve();
             // LOG(INFO) << "Solve status " << solve_status;

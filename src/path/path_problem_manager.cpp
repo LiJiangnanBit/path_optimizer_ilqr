@@ -11,40 +11,85 @@ constexpr double WEIGHT_KAPPA = 10.0;
 constexpr double WEIGHT_KAPPA_RATE = 50.0;
 constexpr double WEIGHT_END_L = 0.1;
 
-void PathProblemManager::formulate_path_problem(const FreeSpace& free_space, const ReferenceLine& reference_line) {
+void PathProblemManager::formulate_path_problem(const FreeSpace& free_space, const ReferenceLine& reference_line, const PathPoint& init_state) {
     // Initialize knots and costs.
     _config.planning_length = reference_line.length();
-    sample_knots();
+    sample_knots(reference_line, init_state);
     // Set dynamics.
     _p_dynamics = std::make_shared<FrenetPathDynamics>(reference_line);
     // Init trajectory.
-    calculate_init_trajectory(reference_line);
+    calculate_init_trajectory(reference_line, init_state);
     // Add costs and constraints.
     add_costs(free_space);
 }
 
-void PathProblemManager::sample_knots() {
-    _knots.clear();
-    _costs.clear();
-    for (double s = 0.0; s < _config.planning_length; s += _config.delta_s) {
-        _knots.emplace_back(s);
-        _costs.emplace_back(CostMap<N_PATH_STATE , N_PATH_CONTROL>());
-    }
+void PathProblemManager::sample_knots(const ReferenceLine& reference_line, const PathPoint& init_state) {
+    // _knots.clear();
+    // _costs.clear();
+    // for (double s = reference_line.get_projection(init_state).s; s < _config.planning_length; s += _config.delta_s) {
+    //     _knots.emplace_back(s);
+    //     _costs.emplace_back(CostMap<N_PATH_STATE , N_PATH_CONTROL>());
+    // }
 }
 
-void PathProblemManager::calculate_init_trajectory(const ReferenceLine& reference_line) {
+void PathProblemManager::calculate_init_trajectory(const ReferenceLine& reference_line, const PathPoint& init_state) {
     _init_trajectory.clear();
+    _knots.clear();
+    _costs.clear();
+
+    static auto dynamics_by_kappa = [&reference_line](const Node<N_PATH_STATE, N_PATH_CONTROL>& node, double move_dist)->Node<N_PATH_STATE, N_PATH_CONTROL> {
+        const double kappa_ref = reference_line.get_reference_point(node.sample()).kappa;
+        const double l = node.state()(L_INDEX);
+        const double hd = node.state()(HD_INDEX);
+        const double kappa = node.state()(K_INDEX);
+        const double dl = (1 - kappa_ref * l) * tan(hd);
+        const double dhd = (1 - kappa_ref * l) * kappa / cos(hd) - kappa_ref;
+        Node<N_PATH_STATE, N_PATH_CONTROL> ret;
+        (*ret.mutable_state())(L_INDEX) = l + dl * move_dist;
+        (*ret.mutable_state())(HD_INDEX) = constrainAngle(hd + dhd * move_dist);
+        return ret;
+    };
+    
+    const auto cart_state = init_state;
     Node<N_PATH_STATE , N_PATH_CONTROL> node;
-    for (const double s : _knots) {
-        auto ref_pt = reference_line.get_reference_point(s);
-        (*node.mutable_state())(K_INDEX) = ref_pt.kappa;
-        node.set_sample(s);
+    const auto init_proj = reference_line.get_projection(init_state);
+    node.set_sample(init_proj.s);
+    (*node.mutable_state())(L_INDEX) = init_proj.l;
+    (*node.mutable_state())(HD_INDEX) = constrainAngle(init_state.theta - reference_line.get_reference_point(init_proj.s).theta);
+    (*node.mutable_state())(K_INDEX) = init_state.kappa;
+    (*node.mutable_control())(KR_INDEX) = init_state.dkappa;
+    _init_trajectory.emplace_back(node);
+    _knots.emplace_back(init_proj.s);
+    _costs.emplace_back(CostMap<N_PATH_STATE , N_PATH_CONTROL>());
+
+    const double pursuit_dist = 10.0;
+
+    for (std::size_t i = 0; node.sample() + _config.delta_s < _config.planning_length; ++i) {
+        auto new_node = dynamics_by_kappa(node, _config.delta_s);
+        new_node.set_sample(node.sample() + _config.delta_s);
+        if (i == 0) {
+            (*new_node.mutable_state())(K_INDEX) = init_state.dkappa * _config.delta_s + init_state.kappa;
+        } else {
+            // Kappa by pure pursuit.
+            const auto xy = reference_line.get_xy_by_sl(SLPosition{new_node.sample(), new_node.state()(L_INDEX)});
+            const double heading = constrainAngle(reference_line.get_reference_point(new_node.sample()).theta + new_node.state()(HD_INDEX));
+            const auto pursuit_point = reference_line.get_reference_point(new_node.sample() + pursuit_dist);
+            const double dist = distance(xy, pursuit_point);
+            const double alpha = atan2(pursuit_point.y - xy.y, pursuit_point.x - xy.x) - heading;
+            (*new_node.mutable_state())(K_INDEX) = 2 * sin(alpha) / dist;
+        }
+        node = std::move(new_node);
         _init_trajectory.emplace_back(node);
+        _knots.emplace_back(node.sample());
+        _costs.emplace_back(CostMap<N_PATH_STATE , N_PATH_CONTROL>());
     }
+
     for (std::size_t i = 0; i < _init_trajectory.size() - 1; ++i) {
+        const double delta_s = _config.delta_s * (1 - reference_line.get_reference_point(_init_trajectory.at(i).sample()).kappa) / cos(_init_trajectory.at(i).state()(HD_INDEX));
         (*_init_trajectory.at(i).mutable_control())(KR_INDEX) =
-            (_init_trajectory.at(i + 1).state()(K_INDEX) - _init_trajectory.at(i).state()(K_INDEX)) / _config.delta_s;
+            (_init_trajectory.at(i + 1).state()(K_INDEX) - _init_trajectory.at(i).state()(K_INDEX)) / delta_s;
     }
+    
 }
 
 std::vector<PathPoint> PathProblemManager::transform_to_path_points(

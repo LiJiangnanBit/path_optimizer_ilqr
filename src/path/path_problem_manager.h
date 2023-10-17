@@ -24,14 +24,14 @@ struct Config {
 
 class PathProblemManager : public ProblemManager<N_PATH_STATE, N_PATH_CONTROL > {
 public:
-    void formulate_path_problem(const FreeSpace& free_space, const ReferenceLine& reference_line);
+    void formulate_path_problem(const FreeSpace& free_space, const ReferenceLine& reference_line, const PathPoint& init_state);
     const Config& config() const { return _config; }
     static std::vector<PathPoint> transform_to_path_points(
         const ReferenceLine& reference_line, const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory);
 
 private:
-    void sample_knots();
-    void calculate_init_trajectory(const ReferenceLine& reference_line);
+    void sample_knots(const ReferenceLine& reference_line, const PathPoint& init_state);
+    void calculate_init_trajectory(const ReferenceLine& reference_line, const PathPoint& init_state);
     void add_costs(const FreeSpace& free_space);
     Config _config;
 };
