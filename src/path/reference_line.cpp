@@ -13,6 +13,8 @@ void ReferenceLine::initialize(const tk::spline& x_s, const tk::spline& y_s, dou
 }
 
 PathPoint ReferenceLine::get_reference_point(double s) const {
+    s = std::min(s, _length);
+    s = std::max(s, 0.0);
     PathPoint ret;
     ret.x = _x_s(s);
     ret.y = _y_s(s);

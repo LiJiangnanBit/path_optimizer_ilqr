@@ -26,10 +26,13 @@ public:
     bool get_l_bound_for_circle(double s, double r, double* lower_bound, double* upper_bound) const;
     void update_circle_bounds(double r);
     BoundaryPoint get_circle_bound(double s) const;
+    bool is_initialized() const { return _is_initialized; }
+    void set_is_initialized(bool val) { _is_initialized = val; }
 private:
     std::shared_ptr<ReferenceLine> _p_reference_line;
     std::vector<BoundaryPoint> _boundary_points;
     std::vector<BoundaryPoint> _circle_bounds;
+    bool _is_initialized = false;
 };
 
 } // namespace PathPlanning

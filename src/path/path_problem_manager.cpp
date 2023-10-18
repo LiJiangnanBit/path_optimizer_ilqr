@@ -13,6 +13,10 @@ constexpr double WEIGHT_END_L = 0.1;
 
 void PathProblemManager::formulate_path_problem(const FreeSpace& free_space, const ReferenceLine& reference_line, const PathPoint& init_state) {
     // Initialize knots and costs.
+    if (not free_space.is_initialized()) {
+        LOG(INFO) << "[PathProblem] Quit for uninitialized free_space.";
+        return;
+    }
     _config.planning_length = reference_line.length();
     sample_knots(reference_line, init_state);
     // Set dynamics.
@@ -21,6 +25,7 @@ void PathProblemManager::formulate_path_problem(const FreeSpace& free_space, con
     calculate_init_trajectory(reference_line, init_state);
     // Add costs and constraints.
     add_costs(free_space);
+    _problem_formulated = true;
 }
 
 void PathProblemManager::sample_knots(const ReferenceLine& reference_line, const PathPoint& init_state) {
@@ -37,7 +42,7 @@ void PathProblemManager::calculate_init_trajectory(const ReferenceLine& referenc
     _knots.clear();
     _costs.clear();
 
-    static auto dynamics_by_kappa = [&reference_line](const Node<N_PATH_STATE, N_PATH_CONTROL>& node, double move_dist)->Node<N_PATH_STATE, N_PATH_CONTROL> {
+    auto dynamics_by_kappa = [&reference_line](const Node<N_PATH_STATE, N_PATH_CONTROL>& node, double move_dist)->Node<N_PATH_STATE, N_PATH_CONTROL> {
         const double kappa_ref = reference_line.get_reference_point(node.sample()).kappa;
         const double l = node.state()(L_INDEX);
         const double hd = node.state()(HD_INDEX);
@@ -61,7 +66,6 @@ void PathProblemManager::calculate_init_trajectory(const ReferenceLine& referenc
     _init_trajectory.emplace_back(node);
     _knots.emplace_back(init_proj.s);
     _costs.emplace_back(CostMap<N_PATH_STATE , N_PATH_CONTROL>());
-
     const double pursuit_dist = 10.0;
 
     for (std::size_t i = 0; node.sample() + _config.delta_s < _config.planning_length; ++i) {
@@ -75,8 +79,8 @@ void PathProblemManager::calculate_init_trajectory(const ReferenceLine& referenc
             const double heading = constrainAngle(reference_line.get_reference_point(new_node.sample()).theta + new_node.state()(HD_INDEX));
             const auto pursuit_point = reference_line.get_reference_point(new_node.sample() + pursuit_dist);
             const double dist = distance(xy, pursuit_point);
-            const double alpha = atan2(pursuit_point.y - xy.y, pursuit_point.x - xy.x) - heading;
-            (*new_node.mutable_state())(K_INDEX) = 2 * sin(alpha) / dist;
+            (*new_node.mutable_state())(K_INDEX) =
+                std::fabs(dist) > 1.0 ? 2 * sin(atan2(pursuit_point.y - xy.y, pursuit_point.x - xy.x) - heading) / dist : 0.0;
         }
         node = std::move(new_node);
         _init_trajectory.emplace_back(node);
@@ -89,7 +93,6 @@ void PathProblemManager::calculate_init_trajectory(const ReferenceLine& referenc
         (*_init_trajectory.at(i).mutable_control())(KR_INDEX) =
             (_init_trajectory.at(i + 1).state()(K_INDEX) - _init_trajectory.at(i).state()(K_INDEX)) / delta_s;
     }
-    
 }
 
 std::vector<PathPoint> PathProblemManager::transform_to_path_points(

@@ -69,6 +69,7 @@ public:
     const Trajectory<N_STATE, N_CONTROL>& init_trajectory() const { return _init_trajectory; }
     void update_dynamic_costs(const Trajectory<N_STATE, N_CONTROL>& trajectory);
     void calculate_derivatives(const Trajectory<N_STATE, N_CONTROL>& trajectory, std::size_t step, DerivativesInfo<N_STATE, N_CONTROL>* derivatives) const;
+    bool problem_formulated() const { return _problem_formulated; }
 protected:
     std::vector<double> _knots;
     std::vector<CostMap<N_STATE, N_CONTROL>> _costs;
@@ -76,6 +77,7 @@ protected:
     Trajectory<N_STATE, N_CONTROL> _init_trajectory;
     // Some costs may need to be refreshed.
     std::vector<std::shared_ptr<Cost<N_STATE, N_CONTROL>>> _dynamic_costs;
+    bool _problem_formulated = false;
 };
 
 template <std::size_t N_STATE, std::size_t N_CONTROL>

@@ -11,6 +11,7 @@ enum class ILQRSolveStatus {
     SOLVED,
     REACHED_MAX_ITERATION,
     REACHED_MAX_MU,
+    PROBLEM_NOT_FORMULATED,
 };
 
 enum class LQRSolveStatus {
@@ -46,7 +47,6 @@ public:
         _derivatives(problem_manager.num_steps()),
         _approx_cost_decay_info({0.0, 0.0}) {
             CHECK_EQ(_current_trajectory.size(), _num_steps);
-            CHECK_GT(_current_trajectory.size(), 0);
             _problem_manager.update_dynamic_costs(_current_trajectory);
             _current_cost = problem_manager.calculate_total_cost(problem_manager.init_trajectory());
         };
@@ -78,6 +78,9 @@ private:
 
 template <std::size_t N_STATE, std::size_t N_CONTROL>
 ILQRSolveStatus ILQRSolver<N_STATE, N_CONTROL>::solve() {
+    if (not _problem_manager.problem_formulated() || _current_trajectory.empty()) {
+        return ILQRSolveStatus::PROBLEM_NOT_FORMULATED;
+    }
     _iter = 0;
     _current_solve_status = LQRSolveStatus::RUNNING;
     for (; _iter < _ilqr_config.max_iter; ++_iter) {

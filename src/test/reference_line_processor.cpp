@@ -127,6 +127,7 @@ bool ReferenceLineProcessor::search(std::shared_ptr<ReferenceLine> reference_lin
         LOG(ERROR) << "Vehicle far from ref, quit graph search. Init l " << init_sl.l;
         return false;
     }
+    LOG(INFO) << "[FreeSpace] init s " << init_sl.s << ", init l " << init_sl.l;
     int start_lateral_index =
         static_cast<int>((max_lateral_range + init_sl.l) / lateral_spacing);
 
@@ -251,7 +252,8 @@ bool ReferenceLineProcessor::search(std::shared_ptr<ReferenceLine> reference_lin
 
     std::reverse(layers_bounds_.begin(), layers_bounds_.end());
     layers_s_list_.resize(layers_bounds_.size());
-
+    LOG(INFO) << "[FreeSpace] Search ok.";
+    free_space_out->set_is_initialized(true);
     free_space_out->set_reference_line(reference_line_out);
     free_space_out->mutable_boundary_points()->clear();
     for (std::size_t i = 0; i < layers_s_list_.size(); ++i) {
