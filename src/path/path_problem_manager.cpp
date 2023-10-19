@@ -123,6 +123,7 @@ void PathProblemManager::add_costs(const FreeSpace& free_space) {
     std::shared_ptr<PathCost> end_ref_l_cost_ptr(new RefLCost(WEIGHT_END_L, "_end_state"));
     std::shared_ptr<PathCost> rear_boundary_constraint_ptr(new RearBoundaryConstraint(free_space, 0.5, 2.5));
     std::shared_ptr<PathCost> front_boundary_constraint_ptr(new FrontBoundaryConstraint(free_space, 0.5, 2.5));
+    std::shared_ptr<PathCost> kappa_constraint_ptr(new KappaConstraint(0.5, 2.5));
 
     _dynamic_costs.emplace_back(rear_boundary_constraint_ptr);
     _dynamic_costs.emplace_back(front_boundary_constraint_ptr);
@@ -136,6 +137,7 @@ void PathProblemManager::add_costs(const FreeSpace& free_space) {
         if (step > 0) {
             _costs.at(step)[rear_boundary_constraint_ptr->name()] = rear_boundary_constraint_ptr;
             _costs.at(step)[front_boundary_constraint_ptr->name()] = front_boundary_constraint_ptr;
+            _costs.at(step)[kappa_constraint_ptr->name()] = kappa_constraint_ptr;
         }
     }
     _costs.back()[end_ref_l_cost_ptr->name()] = end_ref_l_cost_ptr;

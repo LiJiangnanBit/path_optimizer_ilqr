@@ -202,4 +202,24 @@ private:
     std::vector<FrontBoundaryInfo> _info_vec;    
 };
 
+class KappaConstraint : public PathCost {
+public:
+    KappaConstraint(double q1, double q2, const std::string& name = "")
+        : PathCost("kappa_constraint_" + name), _barrier_function(q1, q2) {} 
+    double cost_value(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step) override {
+        CHECK(step < trajectory.size());
+        const double kappa = trajectory.at(step).state()(K_INDEX);
+        return _barrier_function.value(-FLAGS_max_kappa - kappa) + _barrier_function.value(kappa - FLAGS_max_kappa);
+    }
+    void calculate_derivatives(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step, DerivativesInfo<N_PATH_STATE, N_PATH_CONTROL>* derivatives) override {
+        CHECK(step < trajectory.size());
+        const double kappa = trajectory.at(step).state()(K_INDEX);
+        derivatives->lx += _barrier_function.dx(-FLAGS_max_kappa - kappa, {0.0, 0.0, -1.0}) + _barrier_function.dx(kappa - FLAGS_max_kappa, {0.0, 0.0, 1.0});
+        derivatives->lxx += _barrier_function.ddx(-FLAGS_max_kappa - kappa, {0.0, 0.0, -1.0}, Eigen::MatrixXd::Zero(N_PATH_STATE, N_PATH_STATE))
+            + _barrier_function.ddx(kappa - FLAGS_max_kappa, {0.0, 0.0, 1.0}, Eigen::MatrixXd::Zero(N_PATH_STATE, N_PATH_STATE));
+    }
+private:
+    ExpBarrierFunction<N_PATH_STATE, N_PATH_STATE> _barrier_function;
+};
+
 }
