@@ -1,5 +1,5 @@
 # path_optimizer_ilqr
-Path planning for autonomous vehicles.  
+**Path planning for autonomous vehicles.**  
 The problem formulation is basically the same as [path_optimizer](https://github.com/LiJiangnanBit/path_optimizer) and [path_optimizer_2](https://github.com/LiJiangnanBit/path_optimizer_2), but solved through constrained ilqr.
 
 ## Demo
