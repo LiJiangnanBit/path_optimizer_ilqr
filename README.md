@@ -9,7 +9,7 @@ Yellow line: initial path; Blue dots: free space boundaries;
 ## Features
 - Problem formulated under the frenet frame;
 - Kappa and kappa rate constraints;
-- Compared to the previous work, there is less accuracy loss due to the ilqr solver.
+- Compared to the previous work, there is less accuracy loss on the safety constraints and the vehicle dynamics due to the ilqr solver.
 
 ## Method  
 (...)
