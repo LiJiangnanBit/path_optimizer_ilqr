@@ -3,8 +3,10 @@
 The problem formulation is basically the same as [path_optimizer](https://github.com/LiJiangnanBit/path_optimizer) and [path_optimizer_2](https://github.com/LiJiangnanBit/path_optimizer_2), but solved through constrained ilqr.
 
 ## Demo
-<img width="1288" alt="image" src="https://github.com/LiJiangnanBit/path_optimizer_ilqr/assets/23288471/fd6dab97-340b-4bca-a2bc-91e1ed9b2386">  
-Yellow line: initial path; Blue dots: free space boundaries;
+<img width="1140" alt="image" src="https://github.com/LiJiangnanBit/path_optimizer_ilqr/assets/23288471/ecda9b64-2cc5-4706-b4e5-13b35fe74994">
+
+Yellow line: initial path;  
+Blue dots: free space boundaries;
 
 ## Features
 - Problem formulated under the frenet frame;
