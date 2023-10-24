@@ -242,7 +242,7 @@ int main(int argc, char **argv) {
                 path_color.b = 0.0;
             }
             visualization_msgs::Marker result_marker =
-                markers.newLineStrip(0.3, "optimized path", id++, path_color, marker_frame_id);
+                markers.newLineStrip(FLAGS_vehicle_width, "optimized path", id++, path_color, marker_frame_id);
             visualization_msgs::Marker vehicle_geometry_marker =
                 markers.newLineList(0.02, "vehicle", id++, ros_viz_tools::GRAY, marker_frame_id);
             // Visualize vehicle geometry.

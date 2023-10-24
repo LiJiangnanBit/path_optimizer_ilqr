@@ -17,7 +17,6 @@ find_package(catkin REQUIRED COMPONENTS
         ${catkin_deps}
         )
 
-find_package(OsqpEigen REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV 3 REQUIRED)
 find_package(gflags REQUIRED)
@@ -41,11 +40,14 @@ add_library(${PROJECT_NAME}
         src/path/reference_line.cpp
         src/path/spline.cpp
         src/path/free_space.cpp
+        src/path/tool.cpp
+        src/path/free_space.cpp
+        src/path/gflags.cpp
         src/solver/solver.cpp
         src/solver/problem_manager.cpp
         src/path/path_problem_manager.cpp
         )
-target_link_libraries(${PROJECT_NAME} glog gflags ${catkin_LIBRARIES} OsqpEigen::OsqpEigen osqp::osqp
+target_link_libraries(${PROJECT_NAME} glog gflags ${catkin_LIBRARIES}
         )
 
 add_executable(${PROJECT_NAME}_demo
