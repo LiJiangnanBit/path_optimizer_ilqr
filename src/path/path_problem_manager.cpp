@@ -79,8 +79,10 @@ void PathProblemManager::calculate_init_trajectory(const ReferenceLine& referenc
             const double heading = constrainAngle(reference_line.get_reference_point(new_node.sample()).theta + new_node.state()(HD_INDEX));
             const auto pursuit_point = reference_line.get_reference_point(new_node.sample() + pursuit_dist);
             const double dist = distance(xy, pursuit_point);
-            (*new_node.mutable_state())(K_INDEX) =
-                std::fabs(dist) > 1.0 ? 2 * sin(atan2(pursuit_point.y - xy.y, pursuit_point.x - xy.x) - heading) / dist : 0.0;
+            double kappa = std::fabs(dist) > 1.0 ? 2 * sin(atan2(pursuit_point.y - xy.y, pursuit_point.x - xy.x) - heading) / dist : 0.0;
+            kappa = std::min(kappa, FLAGS_max_kappa);
+            kappa = std::max(kappa, -FLAGS_max_kappa);
+            (*new_node.mutable_state())(K_INDEX) = kappa;
         }
         node = std::move(new_node);
         _init_trajectory.emplace_back(node);

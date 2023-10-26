@@ -174,7 +174,7 @@ void ILQRSolver<N_STATE, N_CONTROL>::backward_pass() {
 
         if (i < _num_steps - 1) {
             _approx_cost_decay_info.first += _k.at(i).transpose() * qu;
-            _approx_cost_decay_info.second += 0.5 * _k.at(i).transpose() * quu * _k.at(i);
+            _approx_cost_decay_info.second += (0.5 * _k.at(i).transpose() * quu * _k.at(i))(0);
         }
     }
     LOG(INFO) << "[Backward pass] Iter " << _iter << " OK";
