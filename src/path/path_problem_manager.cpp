@@ -9,35 +9,25 @@ using namespace Solver;
 constexpr double WEIGHT_REF_L = 0.001;
 constexpr double WEIGHT_KAPPA = 10.0;
 constexpr double WEIGHT_KAPPA_RATE = 50.0;
-constexpr double WEIGHT_END_L = 0.1;
+constexpr double WEIGHT_END_L = 0.5;
+constexpr double WEIGHT_END_HEADING_DIFF = 20.0;
 
-void PathProblemManager::formulate_path_problem(const FreeSpace& free_space, const ReferenceLine& reference_line, const PathPoint& init_state) {
+void PathProblemManager::formulate_path_problem(const FreeSpace& free_space, const ReferenceLine& reference_line, const PathPoint& init_state, const PathPoint& end_state) {
     // Initialize knots and costs.
     if (not free_space.is_initialized()) {
         LOG(INFO) << "[PathProblem] Quit for uninitialized free_space.";
         return;
     }
-    _config.planning_length = reference_line.length();
-    sample_knots(reference_line, init_state);
     // Set dynamics.
     _p_dynamics = std::make_shared<FrenetPathDynamics>(reference_line);
     // Init trajectory.
-    calculate_init_trajectory(reference_line, init_state);
+    calculate_init_trajectory(reference_line, init_state, end_state);
     // Add costs and constraints.
-    add_costs(free_space);
+    add_costs(free_space, end_state);
     _problem_formulated = true;
 }
 
-void PathProblemManager::sample_knots(const ReferenceLine& reference_line, const PathPoint& init_state) {
-    // _knots.clear();
-    // _costs.clear();
-    // for (double s = reference_line.get_projection(init_state).s; s < _config.planning_length; s += _config.delta_s) {
-    //     _knots.emplace_back(s);
-    //     _costs.emplace_back(CostMap<N_PATH_STATE , N_PATH_CONTROL>());
-    // }
-}
-
-void PathProblemManager::calculate_init_trajectory(const ReferenceLine& reference_line, const PathPoint& init_state) {
+void PathProblemManager::calculate_init_trajectory(const ReferenceLine& reference_line, const PathPoint& init_state, const PathPoint& end_state) {
     _init_trajectory.clear();
     _knots.clear();
     _costs.clear();
@@ -67,8 +57,9 @@ void PathProblemManager::calculate_init_trajectory(const ReferenceLine& referenc
     _knots.emplace_back(init_proj.s);
     _costs.emplace_back(CostMap<N_PATH_STATE , N_PATH_CONTROL>());
     const double pursuit_dist = 10.0;
+    const auto end_proj = reference_line.get_projection(end_state);
 
-    for (std::size_t i = 0; node.sample() + _config.delta_s < _config.planning_length; ++i) {
+    for (std::size_t i = 0; node.sample() + _config.delta_s < end_proj.s; ++i) {
         auto new_node = dynamics_by_kappa(node, _config.delta_s);
         new_node.set_sample(node.sample() + _config.delta_s);
         if (i == 0) {
@@ -117,15 +108,18 @@ std::vector<PathPoint> PathProblemManager::transform_to_path_points(
    return ret;
 }
 
-void PathProblemManager::add_costs(const FreeSpace& free_space) {
+void PathProblemManager::add_costs(const FreeSpace& free_space, const PathPoint& end_state) {
     CHECK(_costs.size() == num_steps());
     std::shared_ptr<PathCost> ref_l_cost_ptr(new RefLCost(WEIGHT_REF_L));
     std::shared_ptr<PathCost> kappa_cost_ptr(new KappaCost(WEIGHT_KAPPA));
     std::shared_ptr<PathCost> kappa_rate_cost_ptr(new KappaRateCost(WEIGHT_KAPPA_RATE));
-    std::shared_ptr<PathCost> end_ref_l_cost_ptr(new RefLCost(WEIGHT_END_L, "_end_state"));
     std::shared_ptr<PathCost> rear_boundary_constraint_ptr(new RearBoundaryConstraint(free_space, 0.5, 2.5));
     std::shared_ptr<PathCost> front_boundary_constraint_ptr(new FrontBoundaryConstraint(free_space, 0.5, 2.5));
     std::shared_ptr<PathCost> kappa_constraint_ptr(new KappaConstraint(0.5, 2.5));
+    const auto& reference_line = *(free_space.reference_line_ptr());
+    const double end_state_l = reference_line.get_projection(end_state).l;
+    const double end_state_heading_diff = constrainAngle(end_state.theta - reference_line.get_reference_point(_knots.back()).theta);
+    std::shared_ptr<PathCost> end_state_cost_ptr(new TargetStateCost(end_state_l, end_state_heading_diff, WEIGHT_END_L, WEIGHT_END_HEADING_DIFF, "end_state"));
 
     _dynamic_costs.emplace_back(rear_boundary_constraint_ptr);
     _dynamic_costs.emplace_back(front_boundary_constraint_ptr);
@@ -142,7 +136,7 @@ void PathProblemManager::add_costs(const FreeSpace& free_space) {
             _costs.at(step)[kappa_constraint_ptr->name()] = kappa_constraint_ptr;
         }
     }
-    _costs.back()[end_ref_l_cost_ptr->name()] = end_ref_l_cost_ptr;
+    _costs.back()[end_state_cost_ptr->name()] = end_state_cost_ptr;
 }
 
 Variable<N_PATH_STATE> FrenetPathDynamics::move_forward(const Node<N_PATH_STATE , N_PATH_CONTROL>& node, double move_dist) const {

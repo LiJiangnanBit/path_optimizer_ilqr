@@ -12,7 +12,7 @@ using PathCost = Cost<N_PATH_STATE, N_PATH_CONTROL>;
 
 class RefLCost : public PathCost {
 public:
-    RefLCost(double weight, const std::string& name = "") : PathCost("ref_l_cost" + name), _weight(weight) {}
+    RefLCost(double weight, const std::string& name = "") : PathCost("ref_l_cost_" + name), _weight(weight) {}
     double cost_value(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step) override {
         CHECK(step < trajectory.size());
         const double l = trajectory.at(step).state()(L_INDEX);
@@ -34,7 +34,7 @@ private:
 
 class KappaCost : public PathCost {
 public:
-    KappaCost(double weight, const std::string& name = "") : PathCost("kappa_cost" + name), _weight(weight) {}
+    KappaCost(double weight, const std::string& name = "") : PathCost("kappa_cost_" + name), _weight(weight) {}
     double cost_value(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step) override {
         CHECK(step < trajectory.size());
         const double kappa = trajectory.at(step).state()(K_INDEX);
@@ -58,7 +58,7 @@ private:
 
 class KappaRateCost : public PathCost {
 public:
-    KappaRateCost(double weight, const std::string& name = "") : PathCost("kappa_rate_cost" + name), _weight(weight) {}
+    KappaRateCost(double weight, const std::string& name = "") : PathCost("kappa_rate_cost_" + name), _weight(weight) {}
     double cost_value(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step) override {
         CHECK(step < trajectory.size() - 1);
         const double kappa_rate = trajectory.at(step).control()(KR_INDEX);
@@ -75,6 +75,34 @@ public:
     }
 private:
     double _weight = 0.0;
+};
+
+class TargetStateCost : public PathCost {
+public:
+    TargetStateCost(double target_l, double target_heading_diff, double l_weight, double heading_diff_weight, const std::string& name = "")
+        : PathCost("target_state_cost_" + name), _target_l(target_l), _target_heading_diff(target_heading_diff), _l_weight(l_weight), _heading_diff_weight(heading_diff_weight) {}
+    double cost_value(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step) override {
+        CHECK(step < trajectory.size());
+        const double l = trajectory.at(step).state()(L_INDEX);
+        const double heading_diff = trajectory.at(step).state()(HD_INDEX);
+        return 0.5 * _l_weight * (l - _target_l) * (l - _target_l) + 0.5 * _heading_diff_weight * (_target_heading_diff - heading_diff) * (_target_heading_diff - heading_diff);
+    }
+    void calculate_derivatives(const Trajectory<N_PATH_STATE, N_PATH_CONTROL>& trajectory, std::size_t step, DerivativesInfo<N_PATH_STATE, N_PATH_CONTROL>* derivatives) override {
+        CHECK(step < trajectory.size());
+        const double l = trajectory.at(step).state()(L_INDEX);
+        const double heading_diff = trajectory.at(step).state()(HD_INDEX);
+        Eigen::Matrix<double, N_PATH_STATE, 1> dx{_l_weight * (l - _target_l), _heading_diff_weight * (heading_diff - _target_heading_diff), 0.0};
+        Eigen::Matrix<double, N_PATH_STATE, N_PATH_STATE> dxx;
+        dxx << _l_weight, 0.0, 0.0, 0.0, _heading_diff_weight, 0.0, 0.0, 0.0, 0.0;
+        derivatives->lx += dx;
+        derivatives->lxx += dxx;
+    }
+
+private:
+    double _l_weight = 0.0;
+    double _heading_diff_weight = 0.0;
+    double _target_l = 0.0;
+    double _target_heading_diff = 0.0;
 };
 
 // ----------Constraints----------------
