@@ -17,7 +17,7 @@ Blue dots: free space boundaries;
 (...)
 
 ## Depencencies
-- ROS Kinetic (Ubuntu 16.04) or Melodic (Ubuntu 18.04);
+- Tested on ROS Kinetic (Ubuntu 16) and Noetic (Ubuntu 20);
 - Other dependencies: [glog](https://github.com/google/glog),  [gflags](https://github.com/gflags/gflags), [grid_map](https://github.com/ANYbotics/grid_map);
 - Put these ROS packages in your ros workspace: [ros_viz_tools](https://github.com/Magic-wei/ros_viz_tools), [tinyspline_ros](https://github.com/qutas/tinyspline_ros).
 
